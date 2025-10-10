@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "666590430200",
+    "project_id": "skillyfta",
+    "storage_bucket": "skillyfta.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:666590430200:android:512e65f3764e1aad04cc0d",
+        "android_client_info": {
+          "package_name": "com.example.skillyfta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3ox8FevmRWzSwDU4JIPF1r7PTCIZupQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
