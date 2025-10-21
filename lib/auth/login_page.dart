@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:skillyfta/pages/beranda_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -49,10 +50,10 @@ class _LoginPageState extends State<LoginPage> {
 
       if (mounted) {
         print("Login berhasil & email terverifikasi! Navigasi ke halaman utama...");
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const BerandaPage()),
-        // );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const BerandaPage()),
+        );
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Terjadi kesalahan.';
@@ -107,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -125,19 +126,9 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Text(
-                    'Selamat Datang!',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  const Text('Selamat Datang!', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Masuk untuk melanjutkan perjalanan skill mu',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
-                  ),
+                  const Text('Masuk untuk melanjutkan perjalanan skill mu', style: TextStyle(fontSize: 16, color: Colors.white70)),
                   const SizedBox(height: 48),
 
                   Container(
@@ -146,93 +137,75 @@ class _LoginPageState extends State<LoginPage> {
                       color: const Color(0xFF4A3F8E).withOpacity(0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Email',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _emailController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: InputDecoration(
-                            hintText: 'Masukkan email',
-                            prefixIcon: Icon(Icons.email_outlined),
-                            hintStyle: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
+                    // DITAMBAHKAN: Widget Form untuk validasi
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Email', style: TextStyle(color: Colors.white, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _emailController,
+                            style: const TextStyle(color: Colors.black87),
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan email',
+                              prefixIcon: const Icon(Icons.email_outlined),
+                              hintStyle: const TextStyle(fontSize: 16, color: Colors.grey),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16), // DIUBAH
                             ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 5,
-                              horizontal: 16,
-                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            // DITAMBAHKAN: Aturan validasi
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Email tidak boleh kosong';
+                              }
+                              return null;
+                            },
                           ),
-                        ),
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                        const Text(
-                          'Password',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _passwordController,
-                          style: const TextStyle(color: Colors.black87),
-                          obscureText: !_isPasswordVisible,
-                          decoration: InputDecoration(
-                            hintText: 'Masukkan password',
-                            prefixIcon: Icon(Icons.lock_outlined),
-                            hintStyle: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 5,
-                              horizontal: 16,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: _resetPassword,
-                            child: const Text(
-                              'Lupa Password?',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.bold,
+                          const Text('Password', style: TextStyle(color: Colors.white, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _passwordController,
+                            style: const TextStyle(color: Colors.black87),
+                            obscureText: !_isPasswordVisible,
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan password',
+                              prefixIcon: const Icon(Icons.lock_outlined),
+                              hintStyle: const TextStyle(fontSize: 16, color: Colors.grey),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16), // DIUBAH
+                              suffixIcon: IconButton(
+                                icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+                                onPressed: () {
+                                  setState(() { _isPasswordVisible = !_isPasswordVisible; });
+                                },
                               ),
                             ),
+                            // DITAMBAHKAN: Aturan validasi
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Password tidak boleh kosong';
+                              }
+                              return null;
+                            },
                           ),
-                        ),
-                      ],
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _resetPassword,
+                              child: const Text('Lupa Password?', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -244,19 +217,12 @@ class _LoginPageState extends State<LoginPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: const Color(0xFF3A2D7D),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(
-                              color: Color(0xFF3A2D7D),
-                            )
+                          ? const CircularProgressIndicator(color: Color(0xFF3A2D7D))
                           : const Text('Masuk'),
                     ),
                   ),
@@ -264,26 +230,15 @@ class _LoginPageState extends State<LoginPage> {
 
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
+                      style: const TextStyle(color: Colors.white70, fontSize: 15),
                       children: <TextSpan>[
                         const TextSpan(text: 'Belum punya akun? '),
                         TextSpan(
                           text: 'Daftar di sini',
-                          style: const TextStyle(
-                            color: Color(0xFF3A2D7D),
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(color: Color(0xFFC3A5F8), fontWeight: FontWeight.bold),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterPage(),
-                                ),
-                              );
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
                             },
                         ),
                       ],
