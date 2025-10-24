@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/screen_one.dart';
+//import 'screens/screen_one.dart';
+import 'pages/beranda_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const ScreenOne(),
+      home: const BerandaPage(),
       debugShowCheckedModeBanner: false,
     );
   }

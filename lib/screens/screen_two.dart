@@ -14,22 +14,22 @@ class _ScreenTwoState extends State<ScreenTwo> {
 
   final List<Map<String, String>> onboardingPages = [
     {
-      "image": "🎯",
+      "image": "assets/images/target.png",
       "title": "Tetapkan Target Skill",
       "subtitle":
-          "Tentukan skill apa yang ingin kamu kuasai dan buat target latihan harimu yang realistis",
+      "Tentukan skill apa yang ingin kamu kuasai dan buat target latihan harimu yang realistis",
     },
     {
-      "image": "📈",
+      "image": "assets/images/lacak.png",
       "title": "Lacak Progress Harian",
       "subtitle":
-          "Catat setiap menit latihan dan lihat perkembangan skill mu dalam grafik yang mudah dipahami",
+      "Catat setiap menit latihan dan lihat perkembangan skill mu dalam grafik yang mudah dipahami",
     },
     {
-      "image": "🤝",
+      "image": "assets/images/jabatan.png",
       "title": "Berbagi & Motivasi",
       "subtitle":
-          "Bagikan pencapaian mu, lihat progress orang lain, dan dapatkan motivasi dari orang lain",
+      "Bagikan pencapaian mu, lihat progress orang lain, dan dapatkan motivasi dari orang lain",
     },
   ];
 
@@ -82,7 +82,7 @@ class _ScreenTwoState extends State<ScreenTwo> {
                           ),
                         ),
                       ),
-                      
+
                       Expanded(
                         child: PageView.builder(
                           controller: _pageController,
@@ -101,7 +101,7 @@ class _ScreenTwoState extends State<ScreenTwo> {
                           },
                         ),
                       ),
-                      
+
                       Padding(
                         padding: const EdgeInsets.only(bottom: 20.0),
                         child: Row(
@@ -109,7 +109,7 @@ class _ScreenTwoState extends State<ScreenTwo> {
                           children: List.generate(onboardingPages.length, (index) => buildDot(index, context)),
                         ),
                       ),
-                      
+
                       // ini tombol lanjut ye
                       Padding(
                         padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
@@ -165,7 +165,7 @@ class _ScreenTwoState extends State<ScreenTwo> {
       ),
     );
   }
-  
+
   Container buildDot(int index, BuildContext context) {
     return Container(
       height: 10,
@@ -196,7 +196,13 @@ class OnboardingPageContent extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(image, style: const TextStyle(fontSize: 100)),
+          // Ganti Text dengan Image.asset
+          Image.asset(
+            image,
+            width: 150,
+            height: 150,
+            fit: BoxFit.contain,
+          ),
           const SizedBox(height: 40),
           Text(
             title,
