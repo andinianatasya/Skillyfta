@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'feed_page.dart'; // Import halaman Feed
+import 'feed_page.dart';
+import 'tambahskill_page.dart';
+import 'pengaturanprofil_page.dart';
 
 class BerandaPage extends StatefulWidget {
   const BerandaPage({Key? key}) : super(key: key);
@@ -35,7 +37,6 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
 
   void _changeTab(int index) {
     if (index == 2) {
-      // Navigasi ke halaman Feed dengan animasi fade
       Navigator.push(
         context,
         PageRouteBuilder(
@@ -131,7 +132,44 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
         ),
         child: IconButton(
           icon: const Icon(Icons.add, size: 32, color: Colors.white),
-          onPressed: () {},
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                const TambahSkillScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0.0, 1.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOutCubic;
+
+                  var tween = Tween(begin: begin, end: end)
+                      .chain(CurveTween(curve: curve));
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 400),
+              ),
+            );
+
+            if (result != null && result is Map<String, dynamic>) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${result['nama']} berhasil ditambahkan!'),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+
+              setState(() {
+                // Refresh data
+              });
+            }
+          },
         ),
       )
           : null,
@@ -198,6 +236,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                   ],
                 ),
               ),
+              // BAGIAN INI YANG DIUPDATE 👇
               IconButton(
                 icon: Image.asset(
                   'assets/images/settings.png',
@@ -207,7 +246,32 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                   errorBuilder: (context, error, stackTrace) =>
                   const Icon(Icons.settings, color: Colors.white, size: 24),
                 ),
-                onPressed: () {},
+                onPressed: () {
+
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(
+                        userName: 'Fadiyah',
+                        userInitial: 'F',
+                      ),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOutCubic;
+
+                        var tween = Tween(begin: begin, end: end)
+                            .chain(CurveTween(curve: curve));
+
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 400),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -367,7 +431,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black45,
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -386,7 +450,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black45,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ],

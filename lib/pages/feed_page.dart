@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'postbaru_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({Key? key}) : super(key: key);
@@ -60,7 +61,7 @@ class _FeedPageState extends State<FeedPage> {
           child: Column(
             children: [
               _buildHeader(),
-              // Navbar Tab Navigation
+
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -117,7 +118,60 @@ class _FeedPageState extends State<FeedPage> {
         ),
         child: IconButton(
           icon: const Icon(Icons.add, size: 32, color: Colors.white),
-          onPressed: () {},
+          onPressed: () async {
+
+            try {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BuatPostScreen(),
+                ),
+              );
+
+              print('Result received: $result');
+              if (result != null && result is Map) {
+                final String kategori = result['kategori']?.toString() ?? 'Progress';
+                final String content = result['content']?.toString() ?? '';
+
+                if (content.isNotEmpty) {
+                  setState(() {
+                    feedData.insert(0, {
+                      'name': 'Anda',
+                      'initial': 'Y',
+                      'color': const Color(0xFF667EEA),
+                      'time': 'Baru saja',
+                      'badge': kategori,
+                      'badgeIcon': 'assets/images/${kategori.toLowerCase()}.png',
+                      'content': content,
+                      'likes': 0,
+                      'comments': 0,
+                    });
+                  });
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Post berhasil dipublikasikan!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              }
+            } catch (e) {
+              print('Error: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Terjadi kesalahan: $e'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            }
+          },
         ),
       ),
     );
@@ -169,10 +223,10 @@ class _FeedPageState extends State<FeedPage> {
       child: InkWell(
         onTap: () {
           if (index == 0 || index == 1) {
-            // Kembali ke halaman Beranda
+
             Navigator.pop(context);
           }
-          // Jika index == 2 (Feed), tetap di halaman ini
+
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
