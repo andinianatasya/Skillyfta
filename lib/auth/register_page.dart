@@ -38,6 +38,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
       User? user = userCredential.user;
       if (user != null) {
+        await user.updateProfile(displayName: _nameController.text.trim());
+
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'fullName': _nameController.text.trim(),
           'email': _emailController.text.trim(),

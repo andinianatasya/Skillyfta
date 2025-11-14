@@ -1,19 +1,26 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/widgets/timer_popup.dart';
 import 'feed_page.dart';
 import 'tambahskill_page.dart';
 import 'pengaturanprofil_page.dart';
 
 class BerandaPage extends StatefulWidget {
-  const BerandaPage({Key? key}) : super(key: key);
+  const BerandaPage({super.key});
 
   @override
   State<BerandaPage> createState() => _BerandaPageState();
 }
 
-class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStateMixin {
+class _BerandaPageState extends State<BerandaPage>
+    with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
   late AnimationController _animationController;
   late Animation<double> _animation;
+
+  User? _currentUser;
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -27,12 +34,75 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
       curve: Curves.easeInOutCubic,
     );
     _animationController.forward();
+
+    _loadUserData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    _currentUser = FirebaseAuth.instance.currentUser;
+    if (_currentUser != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .get();
+        if (doc.exists && mounted) {
+          setState(() {
+            _userData = doc.data();
+          });
+        }
+      } catch (e) {
+        print("Error loading user data: $e");
+      }
+    }
+  }
+
+  Stream<QuerySnapshot> _getSkillsStream() {
+    if (_currentUser == null) {
+      return Stream.empty();
+    }
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(_currentUser!.uid)
+        .collection('skills')
+        .orderBy('createdAt', descending: false)
+        .snapshots();
+  }
+
+  String _getIconPathForCategory(String? category) {
+    switch (category) {
+      case 'Musik':
+        return 'assets/images/alatmusik.png';
+      case 'Teknologi / Digital':
+        return 'assets/images/laptop.png';
+      case 'Akademik':
+        return 'assets/images/akademik.png';
+      case 'Bahasa':
+        return 'assets/images/bahasa.png';
+      case 'Olahraga':
+        return 'assets/images/olahraga.png';
+      case 'Seni / Kreativitas':
+        return 'assets/images/lukis.png';
+      case 'Lainnya':
+      default:
+        return 'assets/images/skill_default.png';
+    }
+  }
+
+  double _calculateProgress(dynamic progressHariIniDetik, dynamic targetWaktuMenit) {
+    if (progressHariIniDetik == null || targetWaktuMenit == null || targetWaktuMenit == 0) {
+      return 0.0;
+    }
+    double currentSeconds = (progressHariIniDetik as num).toDouble();
+    double targetSeconds = (targetWaktuMenit as num).toDouble() * 60;
+    if (targetSeconds == 0) return 0.0;
+    return (currentSeconds / targetSeconds).clamp(0.0, 1.0);
   }
 
   void _changeTab(int index) {
@@ -42,10 +112,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => FeedPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
+            return FadeTransition(opacity: animation, child: child);
           },
           transitionDuration: const Duration(milliseconds: 300),
         ),
@@ -74,11 +141,32 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              StreamBuilder<QuerySnapshot>(
+                stream: _getSkillsStream(),
+                builder: (context, snapshot) {
+                  int skillCount = 0;
+                  int totalDetik = 0;
+
+                  if (snapshot.hasData) {
+                    skillCount = snapshot.data!.docs.length;
+                    for (var doc in snapshot.data!.docs) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      int progress = (data['progressHariIni'] as num? ?? 0).toInt();
+                      totalDetik += progress;
+                    }
+                  }
+                  int totalMenit = (totalDetik / 60).floor();
+
+                  return _buildHeader(skillCount, totalMenit);
+                },
+              ),
+
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -89,10 +177,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                         _buildTab('Feed', 2),
                       ],
                     ),
-                    Container(
-                      height: 1,
-                      color: Colors.grey[300],
-                    ),
+                    Container(height: 1, color: Colors.grey[300]),
                   ],
                 ),
               ),
@@ -114,69 +199,75 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
       ),
       floatingActionButton: _selectedTab == 0
           ? Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF667EEA).withOpacity(0.4),
-              spreadRadius: 0,
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.add, size: 32, color: Colors.white),
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                const TambahSkillScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeInOutCubic;
-
-                  var tween = Tween(begin: begin, end: end)
-                      .chain(CurveTween(curve: curve));
-
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: child,
-                  );
-                },
-                transitionDuration: const Duration(milliseconds: 400),
-              ),
-            );
-
-            if (result != null && result is Map<String, dynamic>) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${result['nama']} berhasil ditambahkan!'),
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 2),
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                 ),
-              );
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF667EEA).withOpacity(0.4),
+                    spreadRadius: 0,
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.add, size: 32, color: Colors.white),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          const TambahSkillScreen(),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                            const begin = Offset(0.0, 1.0);
+                            const end = Offset.zero;
+                            const curve = Curves.easeInOutCubic;
 
-              setState(() {
-                // Refresh data
-              });
-            }
-          },
-        ),
-      )
+                            var tween = Tween(
+                              begin: begin,
+                              end: end,
+                            ).chain(CurveTween(curve: curve));
+
+                            return SlideTransition(
+                              position: animation.drive(tween),
+                              child: child,
+                            );
+                          },
+                      transitionDuration: const Duration(milliseconds: 400),
+                    ),
+                  );
+
+                  if (result != null && result is Map<String, dynamic>) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '${result['nama']} berhasil ditambahkan!',
+                        ),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+              ),
+            )
           : null,
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(int skillCount, int totalMenit) {
+    String displayName = _userData?['fullName'] ?? 'User...';
+    String userInitial = displayName.isNotEmpty
+        ? displayName[0].toUpperCase()
+        : 'U';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: Column(
@@ -188,15 +279,12 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                 height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 3,
-                  ),
+                  border: Border.all(color: Colors.white, width: 3),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'F',
-                    style: TextStyle(
+                    userInitial,
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -210,33 +298,26 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: const [
+                      children: [
                         Text(
-                          'Halo, Fadiyah! ',
-                          style: TextStyle(
+                          'Halo, $displayName! ',
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
-                        Text(
-                          '👋',
-                          style: TextStyle(fontSize: 24),
-                        ),
+                        const Text('👋', style: TextStyle(fontSize: 24)),
                       ],
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       'Semangat belajar hari ini',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.white,
-                      ),
+                      style: TextStyle(fontSize: 15, color: Colors.white),
                     ),
                   ],
                 ),
               ),
-              // BAGIAN INI YANG DIUPDATE 👇
               IconButton(
                 icon: Image.asset(
                   'assets/images/settings.png',
@@ -244,30 +325,31 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                   width: 24,
                   color: Colors.white,
                   errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.settings, color: Colors.white, size: 24),
+                      const Icon(Icons.settings, color: Colors.white, size: 24),
                 ),
                 onPressed: () {
-
                   Navigator.push(
                     context,
                     PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(
-                        userName: 'Fadiyah',
-                        userInitial: 'F',
-                      ),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        const begin = Offset(1.0, 0.0);
-                        const end = Offset.zero;
-                        const curve = Curves.easeInOutCubic;
-
-                        var tween = Tween(begin: begin, end: end)
-                            .chain(CurveTween(curve: curve));
-
-                        return SlideTransition(
-                          position: animation.drive(tween),
-                          child: child,
-                        );
-                      },
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          SettingsPage(
+                            userName: displayName,
+                            userInitial: userInitial,
+                          ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                            const begin = Offset(1.0, 0.0);
+                            const end = Offset.zero;
+                            const curve = Curves.easeInOutCubic;
+                            var tween = Tween(
+                              begin: begin,
+                              end: end,
+                            ).chain(CurveTween(curve: curve));
+                            return SlideTransition(
+                              position: animation.drive(tween),
+                              child: child,
+                            );
+                          },
                       transitionDuration: const Duration(milliseconds: 400),
                     ),
                   );
@@ -285,19 +367,28 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('4', 'Skill Aktif'),
+                _buildStatItem(
+                  skillCount.toString(),
+                  'Skill Aktif',
+                ), // <-- MODIFIKASI
                 Container(
                   width: 1,
                   height: 32,
                   color: Colors.white.withOpacity(0.3),
                 ),
-                _buildStatItem('75', 'Menit Hari Ini'),
+                _buildStatItem(
+                  totalMenit.toString(),
+                  'Menit Hari Ini',
+                ), // <-- MODIFIKASI
                 Container(
                   width: 1,
                   height: 32,
                   color: Colors.white.withOpacity(0.3),
                 ),
-                _buildStatItem('12', 'Hari Streak'),
+                _buildStatItem(
+                  '12',
+                  'Hari Streak',
+                ),
               ],
             ),
           ),
@@ -352,54 +443,113 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                     SizedBox(height: 8),
                     Text(
                       'Kamu sudah latihan 12 hari berturut-turut.\nJangan sampai streak mu putus!',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white,
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.white),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              _buildSkillCard(
-                icon: 'assets/images/alatmusik.png',
-                title: 'Belajar Piano',
-                target: 'Target: 30 menit/hari',
-                progress: 0.5,
-                progressText: '15 menit hari ini',
-                status: 'In Progress',
-                statusColor: const Color(0xFFFFA726),
+
+              StreamBuilder<QuerySnapshot>(
+                stream: _getSkillsStream(),
+                builder: (context, snapshot) {
+                  // 1. Tampilkan loading
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF764BA2),
+                      ),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 50),
+                      child: Center(
+                        child: Text(
+                          'Belum ada skill ditambahkan.\nKlik tombol + untuk memulai!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  final skills = snapshot.data!.docs;
+
+                  return ListView.separated(
+                    itemCount: skills.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final skillDoc = skills[index];
+                      final data = skillDoc.data() as Map<String, dynamic>;
+                      final skillId = skillDoc.id;
+
+                      final String title = data['nama'] ?? 'Tanpa Nama';
+                      final String kategori = data['kategori'] ?? 'Lainnya';
+                      final int targetWaktu = (data['targetWaktu'] as num? ?? 0).toInt();
+                      final String targetUnit = data['targetUnit'] ?? 'Menit';
+                      final int progressHariIniDetik = (data['progressHariIni'] as num? ?? 0).toInt();
+
+                      int targetTotalMenit = (targetUnit == 'Jam')
+                          ? targetWaktu * 60
+                          : targetWaktu;
+
+                      String status;
+                      if (progressHariIniDetik <= 0) {
+                        status = 'Not Started';
+                      } else if (progressHariIniDetik >= (targetTotalMenit * 60)) { // targetTotalMenit * 60 = targetTotalDetik
+                        status = 'Done';
+                      } else {
+                        status = 'In Progress';
+                      }
+
+                      final String iconPath = _getIconPathForCategory(kategori);
+
+                      final double progress = _calculateProgress(
+                        progressHariIniDetik,
+                        targetTotalMenit,
+                      );
+
+                      final String targetText = 'Target: $targetWaktu $targetUnit/hari';
+
+                      String progressText;
+                      int progressMenit = (progressHariIniDetik / 60).floor();
+
+                      if (targetUnit == 'Jam') {
+                        progressText = '${(progressHariIniDetik / 3600).toStringAsFixed(1)} / $targetWaktu Jam hari ini';
+                      } else {
+                        progressText = '$progressMenit / $targetWaktu Menit hari ini';
+                      }
+
+                      final Color statusColor = _getStatusTextColor(status);
+
+                      return _buildSkillCard(
+                        skillId: skillId,
+                        icon: iconPath,
+                        title: title,
+                        target: targetText,
+                        progress: progress,
+                        progressText: progressText,
+                        status: status,
+                        statusColor: statusColor,
+                        targetWaktu: targetWaktu,
+                        targetUnit: targetUnit,
+                        progressAwal: progressHariIniDetik,
+                      );
+                    },
+                  );
+                },
               ),
-              const SizedBox(height: 12),
-              _buildSkillCard(
-                icon: 'assets/images/laptop.png',
-                title: 'Belajar Flutter',
-                target: 'Target: 60 menit/hari',
-                progress: 1.0,
-                progressText: '60 menit hari ini',
-                status: 'Done',
-                statusColor: const Color(0xFF66BB6A),
-              ),
-              const SizedBox(height: 12),
-              _buildSkillCard(
-                icon: 'assets/images/lukis.png',
-                title: 'Belajar Menggambar',
-                target: 'Target: 20 menit/hari',
-                progress: 0.0,
-                progressText: '0 menit hari ini',
-                status: 'Not Started',
-                statusColor: const Color(0xFFBDBDBD),
-              ),
-              const SizedBox(height: 12),
-              _buildSkillCard(
-                icon: 'assets/images/olahraga.png',
-                title: 'Latihan Futsal',
-                target: 'Target: 60 menit/hari',
-                progress: 0.0,
-                progressText: '0 menit hari ini',
-                status: 'Not Started',
-                statusColor: const Color(0xFFBDBDBD),
-              ),
+
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
@@ -442,7 +592,10 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                                 height: 36,
                                 width: 36,
                                 errorBuilder: (context, error, stackTrace) =>
-                                const Text('🏆', style: TextStyle(fontSize: 36)),
+                                    const Text(
+                                      '🏆',
+                                      style: TextStyle(fontSize: 36),
+                                    ),
                               ),
                               const SizedBox(width: 12),
                               const Text(
@@ -473,10 +626,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
           child: Text(
             'Halaman Statistik\n(Coming Soon)',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
         ),
       );
@@ -495,13 +645,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Colors.white,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white)),
       ],
     );
   }
@@ -516,7 +660,9 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isSelected ? const Color(0xFF667EEA) : Colors.transparent,
+                color: isSelected
+                    ? const Color(0xFF667EEA)
+                    : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -588,6 +734,7 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
   }
 
   Widget _buildSkillCard({
+    required String skillId,
     required String icon,
     required String title,
     required String target,
@@ -595,6 +742,9 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
     required String progressText,
     required String status,
     required Color statusColor,
+    required int targetWaktu,
+    required String targetUnit,
+    required int progressAwal,
   }) {
     final statusTextColor = _getStatusTextColor(status);
     final statusBgColor = _getStatusBackgroundColor(status);
@@ -653,32 +803,49 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(
-                          Icons.edit,
-                          size: 13,
-                          color: Colors.grey[400],
-                        ),
+                        Icon(Icons.edit, size: 13, color: Colors.grey[400]),
                       ],
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF764BA2).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Image.asset(
-                  'assets/images/alarm.png',
-                  height: 18,
-                  width: 18,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.alarm,
-                    color: Color(0xFF764BA2),
-                    size: 18,
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF764BA2).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Image.asset(
+                    'assets/images/alarm.png',
+                    height: 18,
+                    width: 18,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.alarm,
+                      color: Color(0xFF764BA2),
+                      size: 18,
+                    ),
                   ),
                 ),
+                onPressed: () {
+                  // Tampilkan Popup Timer
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext context) {
+                      return TimerPopup(
+                        skillId: skillId,
+                        skillNama: title,
+                        targetWaktu: targetWaktu,
+                        targetUnit: targetUnit,
+                        progressAwal: progressAwal,
+                      );
+                    },
+                  );
+                },
+                tooltip: "Mulai Timer / Input Progress",
               ),
             ],
           ),
@@ -716,13 +883,13 @@ class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStat
             children: [
               Text(
                 progressText,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusBgColor,
                   borderRadius: BorderRadius.circular(10),
