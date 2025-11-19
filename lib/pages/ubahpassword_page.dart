@@ -54,13 +54,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
+              // Header dengan gradient
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Row(
@@ -84,6 +85,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   ],
                 ),
               ),
+
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -164,18 +166,35 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 40),
-                          SizedBox(
+                          const SizedBox(height: 120),
+
+                          // Button dengan gradient sama seperti Edit Profil
+                          Container(
                             width: double.infinity,
                             height: 50,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF667EEA).withOpacity(0.4),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
                             child: ElevatedButton(
                               onPressed: _changePassword,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF667EEA),
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 0,
                               ),
                               child: const Text(
                                 'Ubah Password',
@@ -187,6 +206,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                               ),
                             ),
                           ),
+
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),

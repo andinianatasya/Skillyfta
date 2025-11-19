@@ -51,10 +51,9 @@ class _FeedPageState extends State<FeedPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.topRight,
             colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            stops: [0.0, 0.5],
           ),
         ),
         child: SafeArea(
@@ -119,12 +118,29 @@ class _FeedPageState extends State<FeedPage> {
         child: IconButton(
           icon: const Icon(Icons.add, size: 32, color: Colors.white),
           onPressed: () async {
-
             try {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const BuatPostScreen(),
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                  const BuatPostScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(0.0, 1.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeInOutCubic;
+
+                    var tween = Tween(begin: begin, end: end)
+                        .chain(CurveTween(curve: curve));
+
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 400),
                 ),
               );
 
@@ -223,10 +239,8 @@ class _FeedPageState extends State<FeedPage> {
       child: InkWell(
         onTap: () {
           if (index == 0 || index == 1) {
-
             Navigator.pop(context);
           }
-
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -259,15 +273,23 @@ class _FeedPageState extends State<FeedPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: data['color'].withOpacity(0.3),
-          width: 2,
+        border: Border(
+          left: BorderSide(
+            color: const Color(0xFF667EEA),
+            width: 4,
+          ),
         ),
         boxShadow: [
           BoxShadow(
+            color: const Color(0xFF667EEA).withOpacity(0.1),
+            spreadRadius: 0,
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+          BoxShadow(
             color: Colors.black.withOpacity(0.05),
             spreadRadius: 0,
-            blurRadius: 8,
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],

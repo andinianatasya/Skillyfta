@@ -12,8 +12,8 @@ class ScreenOne extends StatelessWidget {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
         ),
         child: Column(
