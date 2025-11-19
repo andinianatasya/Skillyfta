@@ -112,9 +112,22 @@ class _BerandaPageState extends State<BerandaPage>
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => FeedPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
+            const begin = Offset(0.0, 0.15);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+
+            var tween = Tween(begin: begin, end: end)
+                .chain(CurveTween(curve: curve));
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+            );
           },
-          transitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: const Duration(milliseconds: 350),
         ),
       );
     } else {
@@ -132,10 +145,9 @@ class _BerandaPageState extends State<BerandaPage>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.topRight,
             colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            stops: [0.0, 0.5],
           ),
         ),
         child: SafeArea(
@@ -184,7 +196,7 @@ class _BerandaPageState extends State<BerandaPage>
               Expanded(
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: const Offset(0, 0.1),
+                    begin: const Offset(0, 0.05),
                     end: Offset.zero,
                   ).animate(_animation),
                   child: FadeTransition(
@@ -199,65 +211,65 @@ class _BerandaPageState extends State<BerandaPage>
       ),
       floatingActionButton: _selectedTab == 0
           ? Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF667EEA).withOpacity(0.4),
-                    spreadRadius: 0,
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.add, size: 32, color: Colors.white),
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          const TambahSkillScreen(),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                            const begin = Offset(0.0, 1.0);
-                            const end = Offset.zero;
-                            const curve = Curves.easeInOutCubic;
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF667EEA).withOpacity(0.4),
+              spreadRadius: 0,
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.add, size: 32, color: Colors.white),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                const TambahSkillScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0.0, 1.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeInOutCubic;
 
-                            var tween = Tween(
-                              begin: begin,
-                              end: end,
-                            ).chain(CurveTween(curve: curve));
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
 
-                            return SlideTransition(
-                              position: animation.drive(tween),
-                              child: child,
-                            );
-                          },
-                      transitionDuration: const Duration(milliseconds: 400),
-                    ),
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
                   );
-
-                  if (result != null && result is Map<String, dynamic>) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${result['nama']} berhasil ditambahkan!',
-                        ),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
                 },
+                transitionDuration: const Duration(milliseconds: 400),
               ),
-            )
+            );
+
+            if (result != null && result is Map<String, dynamic>) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '${result['nama']} berhasil ditambahkan!',
+                  ),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+        ),
+      )
           : null,
     );
   }
@@ -269,7 +281,7 @@ class _BerandaPageState extends State<BerandaPage>
         : 'U';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8), // Lebih ke atas
       child: Column(
         children: [
           Row(
@@ -279,15 +291,34 @@ class _BerandaPageState extends State<BerandaPage>
                 height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  ),
                   border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF764BA2).withOpacity(0.3),
+                      spreadRadius: 0,
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-                child: Center(
-                  child: Text(
-                    userInitial,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                child: InkWell(
+                  onTap: () {
+                    _showProfilePictureDialog(context, displayName, userInitial);
+                  },
+                  borderRadius: BorderRadius.circular(35),
+                  child: Center(
+                    child: Text(
+                      userInitial,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -325,7 +356,7 @@ class _BerandaPageState extends State<BerandaPage>
                   width: 24,
                   color: Colors.white,
                   errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.settings, color: Colors.white, size: 24),
+                  const Icon(Icons.settings, color: Colors.white, size: 24),
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -338,18 +369,18 @@ class _BerandaPageState extends State<BerandaPage>
                           ),
                       transitionsBuilder:
                           (context, animation, secondaryAnimation, child) {
-                            const begin = Offset(1.0, 0.0);
-                            const end = Offset.zero;
-                            const curve = Curves.easeInOutCubic;
-                            var tween = Tween(
-                              begin: begin,
-                              end: end,
-                            ).chain(CurveTween(curve: curve));
-                            return SlideTransition(
-                              position: animation.drive(tween),
-                              child: child,
-                            );
-                          },
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOutCubic;
+                        var tween = Tween(
+                          begin: begin,
+                          end: end,
+                        ).chain(CurveTween(curve: curve));
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
                       transitionDuration: const Duration(milliseconds: 400),
                     ),
                   );
@@ -357,7 +388,7 @@ class _BerandaPageState extends State<BerandaPage>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20), // Lebih jauh dari "Semangat belajar"
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
             decoration: BoxDecoration(
@@ -370,7 +401,7 @@ class _BerandaPageState extends State<BerandaPage>
                 _buildStatItem(
                   skillCount.toString(),
                   'Skill Aktif',
-                ), // <-- MODIFIKASI
+                ),
                 Container(
                   width: 1,
                   height: 32,
@@ -379,7 +410,7 @@ class _BerandaPageState extends State<BerandaPage>
                 _buildStatItem(
                   totalMenit.toString(),
                   'Menit Hari Ini',
-                ), // <-- MODIFIKASI
+                ),
                 Container(
                   width: 1,
                   height: 32,
@@ -392,7 +423,7 @@ class _BerandaPageState extends State<BerandaPage>
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8), // Lebih ke atas
         ],
       ),
     );
@@ -413,19 +444,25 @@ class _BerandaPageState extends State<BerandaPage>
                   gradient: const LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
-                    colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+                    colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.4),
-                    width: 3,
+                    color: Colors.white.withOpacity(0.6),
+                    width: 2.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      spreadRadius: 0,
+                      color: const Color(0xFF4FACFE).withOpacity(0.4),
+                      spreadRadius: 1,
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      spreadRadius: -1,
                       blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, -3),
                     ),
                   ],
                 ),
@@ -506,7 +543,7 @@ class _BerandaPageState extends State<BerandaPage>
                       String status;
                       if (progressHariIniDetik <= 0) {
                         status = 'Not Started';
-                      } else if (progressHariIniDetik >= (targetTotalMenit * 60)) { // targetTotalMenit * 60 = targetTotalDetik
+                      } else if (progressHariIniDetik >= (targetTotalMenit * 60)) {
                         status = 'Done';
                       } else {
                         status = 'In Progress';
@@ -556,17 +593,27 @@ class _BerandaPageState extends State<BerandaPage>
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Color(0xFF26E5A2), Color(0xFF4FC3F7)],
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)],
                   ),
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.6),
+                    width: 2.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      spreadRadius: 0,
+                      color: const Color(0xFF00F2FE).withOpacity(0.4),
+                      spreadRadius: 1,
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      spreadRadius: -1,
                       blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, -3),
                     ),
                   ],
                 ),
@@ -581,7 +628,7 @@ class _BerandaPageState extends State<BerandaPage>
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -592,9 +639,19 @@ class _BerandaPageState extends State<BerandaPage>
                                 height: 36,
                                 width: 36,
                                 errorBuilder: (context, error, stackTrace) =>
-                                    const Text(
-                                      '🏆',
-                                      style: TextStyle(fontSize: 36),
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          '🏆',
+                                          style: TextStyle(fontSize: 24),
+                                        ),
+                                      ),
                                     ),
                               ),
                               const SizedBox(width: 12),
@@ -603,7 +660,7 @@ class _BerandaPageState extends State<BerandaPage>
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: Colors.white,
                                 ),
                               ),
                             ],
@@ -755,9 +812,19 @@ class _BerandaPageState extends State<BerandaPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF667EEA).withOpacity(0.15),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: const Color(0xFF667EEA).withOpacity(0.15),
+            spreadRadius: 0,
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
             spreadRadius: 0,
             blurRadius: 8,
             offset: const Offset(0, 2),
@@ -830,7 +897,6 @@ class _BerandaPageState extends State<BerandaPage>
                   ),
                 ),
                 onPressed: () {
-                  // Tampilkan Popup Timer
                   showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -931,6 +997,82 @@ class _BerandaPageState extends State<BerandaPage>
           ),
         ],
       ),
+    );
+  }
+
+  void _showProfilePictureDialog(BuildContext context, String displayName, String userInitial) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            children: [
+              Center(
+                child: Hero(
+                  tag: 'profile_picture',
+                  child: Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                      ),
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF764BA2).withOpacity(0.5),
+                          spreadRadius: 5,
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        userInitial,
+                        style: const TextStyle(
+                          fontSize: 120,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 40,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Text(
+                    displayName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 40,
+                right: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

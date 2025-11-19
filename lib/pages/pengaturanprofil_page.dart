@@ -29,14 +29,14 @@ class _SettingsPageState extends State<SettingsPage> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-
+              // Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Row(
@@ -76,9 +76,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         _buildSectionHeader(
-                          icon: Icons.person,
+                          iconPath: 'assets/images/account.png',
                           title: 'Informasi Akun',
                           color: const Color(0xFF667EEA),
                         ),
@@ -114,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SizedBox(height: 24),
 
                         _buildSectionHeader(
-                          icon: Icons.security,
+                          iconPath: 'assets/images/lock.png',
                           title: 'Privasi & Keamanan',
                           color: const Color(0xFF667EEA),
                         ),
@@ -143,7 +142,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SizedBox(height: 24),
 
                         _buildSectionHeader(
-                          icon: Icons.notifications,
+                          iconPath: 'assets/images/notification.png',
                           title: 'Notifikasi',
                           color: const Color(0xFF667EEA),
                         ),
@@ -182,7 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSectionHeader({
-    required IconData icon,
+    required String iconPath,
     required String title,
     required Color color,
   }) {
@@ -197,20 +196,31 @@ class _SettingsPageState extends State<SettingsPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [color, color.withOpacity(0.7)],
+              gradient: const LinearGradient(
+                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
               ),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Image.asset(
+              iconPath,
+              width: 20,
+              height: 20,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.settings,
+                  size: 20,
+                  color: Colors.white,
+                );
+              },
+            ),
           ),
           const SizedBox(width: 12),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: Colors.black87,
             ),
           ),
         ],
@@ -307,6 +317,9 @@ class _SettingsPageState extends State<SettingsPage> {
             value: value,
             onChanged: onChanged,
             activeColor: const Color(0xFF667EEA),
+            activeTrackColor: const Color(0xFF667EEA).withOpacity(0.5),
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: Colors.grey[300],
           ),
         ],
       ),
