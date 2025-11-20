@@ -1,8 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:skillyfta/pages/beranda_page.dart';
 import 'firebase_options.dart';
 import 'screens/screen_one.dart';
-//import 'pages/beranda_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,8 +30,30 @@ class MyApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const ScreenOne(),
       debugShowCheckedModeBanner: false,
+
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        
+        builder: (context, snapshot) {
+          // KONDISI LOADING: cek token di HP
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(color: Colors.deepPurple),
+              ),
+            );
+          }
+
+          // UDH LOGIN: Ada data user -> Langsung ke Beranda
+          if (snapshot.hasData) {
+            return const BerandaPage(); 
+          }
+
+          // BELUM LOGIN / LOGOUT: -> Ke Halaman awal
+          return const ScreenOne(); 
+        },
+      ),
     );
   }
 }

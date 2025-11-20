@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:skillyfta/pages/statistik_page.dart';
+import 'package:skillyfta/widgets/gradient_background.dart';
 import 'postbaru_page.dart';
 
 class FeedPage extends StatefulWidget {
-  const FeedPage({Key? key}) : super(key: key);
+  const FeedPage({super.key});
 
   @override
   State<FeedPage> createState() => _FeedPageState();
@@ -47,20 +49,14 @@ class _FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.topRight,
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-          ),
-        ),
-        child: SafeArea(
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               _buildHeader(),
-
+    
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -97,97 +93,98 @@ class _FeedPageState extends State<FeedPage> {
             ],
           ),
         ),
-      ),
-      floatingActionButton: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF667EEA).withOpacity(0.4),
-              spreadRadius: 0,
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+
+        floatingActionButton: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
             ),
-          ],
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.add, size: 32, color: Colors.white),
-          onPressed: () async {
-            try {
-              final result = await Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                  const BuatPostScreen(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    const begin = Offset(0.0, 1.0);
-                    const end = Offset.zero;
-                    const curve = Curves.easeInOutCubic;
-
-                    var tween = Tween(begin: begin, end: end)
-                        .chain(CurveTween(curve: curve));
-
-                    return SlideTransition(
-                      position: animation.drive(tween),
-                      child: FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      ),
-                    );
-                  },
-                  transitionDuration: const Duration(milliseconds: 400),
-                ),
-              );
-
-              print('Result received: $result');
-              if (result != null && result is Map) {
-                final String kategori = result['kategori']?.toString() ?? 'Progress';
-                final String content = result['content']?.toString() ?? '';
-
-                if (content.isNotEmpty) {
-                  setState(() {
-                    feedData.insert(0, {
-                      'name': 'Anda',
-                      'initial': 'Y',
-                      'color': const Color(0xFF667EEA),
-                      'time': 'Baru saja',
-                      'badge': kategori,
-                      'badgeIcon': 'assets/images/${kategori.toLowerCase()}.png',
-                      'content': content,
-                      'likes': 0,
-                      'comments': 0,
-                    });
-                  });
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Post berhasil dipublikasikan!'),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                }
-              }
-            } catch (e) {
-              print('Error: $e');
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Terjadi kesalahan: $e'),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 3),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF667EEA).withOpacity(0.4),
+                spreadRadius: 0,
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.add, size: 32, color: Colors.white),
+            onPressed: () async {
+              try {
+                final result = await Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                    const BuatPostScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOutCubic;
+      
+                      var tween = Tween(begin: begin, end: end)
+                          .chain(CurveTween(curve: curve));
+      
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 400),
                   ),
                 );
+      
+                print('Result received: $result');
+                if (result != null && result is Map) {
+                  final String kategori = result['kategori']?.toString() ?? 'Progress';
+                  final String content = result['content']?.toString() ?? '';
+      
+                  if (content.isNotEmpty) {
+                    setState(() {
+                      feedData.insert(0, {
+                        'name': 'Anda',
+                        'initial': 'Y',
+                        'color': const Color(0xFF667EEA),
+                        'time': 'Baru saja',
+                        'badge': kategori,
+                        'badgeIcon': 'assets/images/${kategori.toLowerCase()}.png',
+                        'content': content,
+                        'likes': 0,
+                        'comments': 0,
+                      });
+                    });
+      
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Post berhasil dipublikasikan!'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
+                }
+              } catch (e) {
+                print('Error: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Terjadi kesalahan: $e'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
               }
-            }
-          },
+            },
+          ),
         ),
       ),
     );
@@ -233,13 +230,25 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  Widget _buildTab(String title, int index) {
-    final isSelected = index == 2; // Tab Feed yang aktif (index 2)
+Widget _buildTab(String title, int index) {
+    final isSelected = index == 2;
     return Expanded(
       child: InkWell(
         onTap: () {
-          if (index == 0 || index == 1) {
-            Navigator.pop(context);
+          if (index == 0) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } 
+          else if (index == 1) {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>const StatistikPage(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                transitionDuration: const Duration(milliseconds: 300),
+              ),
+            );
           }
         },
         child: Container(

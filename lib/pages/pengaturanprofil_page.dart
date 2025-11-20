@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillyfta/widgets/gradient_background.dart';
 import 'editprofil_page.dart';
 import 'ubahpassword_page.dart';
 
@@ -6,11 +7,7 @@ class SettingsPage extends StatefulWidget {
   final String? userName;
   final String? userInitial;
 
-  const SettingsPage({
-    super.key,
-    this.userName,
-    this.userInitial,
-  });
+  const SettingsPage({super.key, this.userName, this.userInitial});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -24,21 +21,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -90,7 +84,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => EditProfilePage(
-                                  userName: widget.userName ?? 'Fadiyah Maisyarah',
+                                  userName:
+                                      widget.userName ?? 'Fadiyah Maisyarah',
                                   userEmail: 'yayi23@gmail.com',
                                 ),
                               ),
@@ -105,7 +100,8 @@ class _SettingsPageState extends State<SettingsPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const ChangePasswordPage(),
+                                builder: (context) =>
+                                    const ChangePasswordPage(),
                               ),
                             );
                           },
@@ -260,10 +256,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -305,10 +298,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),

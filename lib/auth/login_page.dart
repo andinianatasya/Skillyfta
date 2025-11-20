@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/widgets/gradient_background.dart';
 import 'register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skillyfta/pages/beranda_page.dart';
@@ -12,7 +13,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>(); 
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -24,68 +25,83 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      UserCredential userCredential =
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
       if (!userCredential.user!.emailVerified) {
-      await FirebaseAuth.instance.signOut();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Email belum diverifikasi. Silakan cek email Anda untuk aktivasi.',
+        await FirebaseAuth.instance.signOut();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Email belum diverifikasi. Silakan cek email Anda untuk aktivasi.',
+              ),
+              backgroundColor: Colors.redAccent,
             ),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-      return;
+          );
+        }
+        return;
       }
 
       if (mounted) {
-        print("Login berhasil & email terverifikasi! Navigasi ke halaman utama...");
-        Navigator.pushReplacement(
+        print(
+          "Login berhasil & email terverifikasi! Navigasi ke halaman utama...",
+        );
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const BerandaPage()),
+          (route) => false, // Ini menghapus semua halaman sebelumnya dari memori
         );
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Terjadi kesalahan.';
-      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
         message = 'Email atau password yang Anda masukkan salah.';
       } else if (e.code == 'invalid-email') {
         message = 'Format email tidak valid.';
       }
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   Future<void> _resetPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan masukkan email Anda untuk reset password.')),
+        const SnackBar(
+          content: Text('Silakan masukkan email Anda untuk reset password.'),
+        ),
       );
       return;
     }
-    
+
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text.trim());
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Link reset password telah dikirim ke email Anda.')),
+          const SnackBar(
+            content: Text('Link reset password telah dikirim ke email Anda.'),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -93,10 +109,10 @@ class _LoginPageState extends State<LoginPage> {
       if (e.code == 'user-not-found') {
         message = 'Tidak ada pengguna yang terdaftar dengan email ini.';
       }
-       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
@@ -108,28 +124,31 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        
-        child: SafeArea(
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Text('Selamat Datang!', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Text(
+                    'Selamat Datang!',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  const Text('Masuk untuk melanjutkan perjalanan skill mu', style: TextStyle(fontSize: 16, color: Colors.white70)),
+                  const Text(
+                    'Masuk untuk melanjutkan perjalanan skill mu',
+                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                  ),
                   const SizedBox(height: 48),
 
                   Container(
@@ -144,7 +163,10 @@ class _LoginPageState extends State<LoginPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Email', style: TextStyle(color: Colors.white, fontSize: 16)),
+                          const Text(
+                            'Email',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _emailController,
@@ -152,11 +174,20 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               hintText: 'Masukkan email',
                               prefixIcon: const Icon(Icons.email_outlined),
-                              hintStyle: const TextStyle(fontSize: 16, color: Colors.grey),
+                              hintStyle: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
                               filled: true,
                               fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16), // DIUBAH
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 16,
+                              ), // DIUBAH
                             ),
                             keyboardType: TextInputType.emailAddress,
                             // DITAMBAHKAN: Aturan validasi
@@ -169,7 +200,10 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 20),
 
-                          const Text('Password', style: TextStyle(color: Colors.white, fontSize: 16)),
+                          const Text(
+                            'Password',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _passwordController,
@@ -178,15 +212,31 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               hintText: 'Masukkan password',
                               prefixIcon: const Icon(Icons.lock_outlined),
-                              hintStyle: const TextStyle(fontSize: 16, color: Colors.grey),
+                              hintStyle: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
                               filled: true,
                               fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16), // DIUBAH
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 16,
+                              ), // DIUBAH
                               suffixIcon: IconButton(
-                                icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+                                icon: Icon(
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                  color: Colors.grey,
+                                ),
                                 onPressed: () {
-                                  setState(() { _isPasswordVisible = !_isPasswordVisible; });
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
                                 },
                               ),
                             ),
@@ -202,7 +252,13 @@ class _LoginPageState extends State<LoginPage> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: _resetPassword,
-                              child: const Text('Lupa Password?', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                'Lupa Password?',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -219,11 +275,18 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.white,
                         foregroundColor: const Color(0xFF3A2D7D),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Color(0xFF3A2D7D))
+                          ? const CircularProgressIndicator(
+                              color: Color(0xFF3A2D7D),
+                            )
                           : const Text('Masuk'),
                     ),
                   ),
@@ -231,15 +294,26 @@ class _LoginPageState extends State<LoginPage> {
 
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.white70, fontSize: 15),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
                       children: <TextSpan>[
                         const TextSpan(text: 'Belum punya akun? '),
                         TextSpan(
                           text: 'Daftar di sini',
-                          style: const TextStyle(color: Color(0xFFC3A5F8), fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Color(0xFFC3A5F8),
+                            fontWeight: FontWeight.bold,
+                          ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RegisterPage(),
+                                ),
+                              );
                             },
                         ),
                       ],

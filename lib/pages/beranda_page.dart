@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/pages/statistik_page.dart';
+import 'package:skillyfta/widgets/gradient_background.dart';
 import 'package:skillyfta/widgets/timer_popup.dart';
 import 'feed_page.dart';
 import 'tambahskill_page.dart';
@@ -106,31 +108,31 @@ class _BerandaPageState extends State<BerandaPage>
   }
 
   void _changeTab(int index) {
-    if (index == 2) {
+    if (index == 1) {
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const StatistikPage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
+        ),
+      );
+    }
+    else if (index == 2) {
       Navigator.push(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => FeedPage(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(0.0, 0.15);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-
-            var tween = Tween(begin: begin, end: end)
-                .chain(CurveTween(curve: curve));
-
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
-            );
+            return FadeTransition(opacity: animation, child: child);
           },
-          transitionDuration: const Duration(milliseconds: 350),
+          transitionDuration: const Duration(milliseconds: 300),
         ),
       );
-    } else {
+    } 
+    else {
       setState(() {
         _selectedTab = index;
       });
@@ -141,16 +143,10 @@ class _BerandaPageState extends State<BerandaPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.topRight,
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-          ),
-        ),
-        child: SafeArea(
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               StreamBuilder<QuerySnapshot>(
@@ -158,7 +154,7 @@ class _BerandaPageState extends State<BerandaPage>
                 builder: (context, snapshot) {
                   int skillCount = 0;
                   int totalDetik = 0;
-
+    
                   if (snapshot.hasData) {
                     skillCount = snapshot.data!.docs.length;
                     for (var doc in snapshot.data!.docs) {
@@ -168,11 +164,11 @@ class _BerandaPageState extends State<BerandaPage>
                     }
                   }
                   int totalMenit = (totalDetik / 60).floor();
-
+    
                   return _buildHeader(skillCount, totalMenit);
                 },
               ),
-
+    
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -208,69 +204,69 @@ class _BerandaPageState extends State<BerandaPage>
             ],
           ),
         ),
-      ),
-      floatingActionButton: _selectedTab == 0
-          ? Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF667EEA).withOpacity(0.4),
-              spreadRadius: 0,
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+        floatingActionButton: _selectedTab == 0
+            ? Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
             ),
-          ],
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.add, size: 32, color: Colors.white),
-          onPressed: () async {
-            final result = await Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                const TambahSkillScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeInOutCubic;
-
-                  var tween = Tween(
-                    begin: begin,
-                    end: end,
-                  ).chain(CurveTween(curve: curve));
-
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: child,
-                  );
-                },
-                transitionDuration: const Duration(milliseconds: 400),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF667EEA).withOpacity(0.4),
+                spreadRadius: 0,
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-            );
-
-            if (result != null && result is Map<String, dynamic>) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '${result['nama']} berhasil ditambahkan!',
-                  ),
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 2),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.add, size: 32, color: Colors.white),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                  const TambahSkillScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(0.0, 1.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeInOutCubic;
+      
+                    var tween = Tween(
+                      begin: begin,
+                      end: end,
+                    ).chain(CurveTween(curve: curve));
+      
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 400),
                 ),
               );
-            }
-          },
-        ),
-      )
-          : null,
+      
+              if (result != null && result is Map<String, dynamic>) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${result['nama']} berhasil ditambahkan!',
+                    ),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
+        )
+            : null,
+      ),
     );
   }
 
