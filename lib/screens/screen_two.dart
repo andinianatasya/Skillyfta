@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillyfta/widgets/gradient_background.dart';
 import '../auth/register_page.dart';
 
 class ScreenTwo extends StatefulWidget {
@@ -17,19 +18,19 @@ class _ScreenTwoState extends State<ScreenTwo> {
       "image": "assets/images/target.png",
       "title": "Tetapkan Target Skill",
       "subtitle":
-      "Tentukan skill apa yang ingin kamu kuasai dan buat target latihan harimu yang realistis",
+          "Tentukan skill apa yang ingin kamu kuasai dan buat target latihan harimu yang realistis",
     },
     {
       "image": "assets/images/lacak.png",
       "title": "Lacak Progress Harian",
       "subtitle":
-      "Catat setiap menit latihan dan lihat perkembangan skill mu dalam grafik yang mudah dipahami",
+          "Catat setiap menit latihan dan lihat perkembangan skill mu dalam grafik yang mudah dipahami",
     },
     {
       "image": "assets/images/jabatan.png",
       "title": "Berbagi & Motivasi",
       "subtitle":
-      "Bagikan pencapaian mu, lihat progress orang lain, dan dapatkan motivasi dari orang lain",
+          "Bagikan pencapaian mu, lihat progress orang lain, dan dapatkan motivasi dari orang lain",
     },
   ];
 
@@ -41,16 +42,10 @@ class _ScreenTwoState extends State<ScreenTwo> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               Expanded(
@@ -68,7 +63,11 @@ class _ScreenTwoState extends State<ScreenTwo> {
                         child: Padding(
                           padding: const EdgeInsets.only(left: 10.0, top: 10.0),
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Color(0xFF764BA2), size: 28),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Color(0xFF764BA2),
+                              size: 28,
+                            ),
                             onPressed: () {
                               if (_currentPage > 0) {
                                 _pageController.previousPage(
@@ -106,13 +105,20 @@ class _ScreenTwoState extends State<ScreenTwo> {
                         padding: const EdgeInsets.only(bottom: 20.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(onboardingPages.length, (index) => buildDot(index, context)),
+                          children: List.generate(
+                            onboardingPages.length,
+                            (index) => buildDot(index, context),
+                          ),
                         ),
                       ),
 
                       // ini tombol lanjut ye
                       Padding(
-                        padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
+                        padding: const EdgeInsets.only(
+                          left: 20.0,
+                          right: 20.0,
+                          bottom: 20.0,
+                        ),
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
@@ -132,7 +138,9 @@ class _ScreenTwoState extends State<ScreenTwo> {
                               } else {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(builder: (context) => const RegisterPage()),
+                                  MaterialPageRoute(
+                                    builder: (context) => const RegisterPage(),
+                                  ),
                                 );
                               }
                             },
@@ -142,14 +150,19 @@ class _ScreenTwoState extends State<ScreenTwo> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(15),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                                horizontal: 30,
+                              ),
                               textStyle: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             child: Text(
-                              _currentPage < onboardingPages.length - 1 ? 'Lanjut' : 'Mulai',
+                              _currentPage < onboardingPages.length - 1
+                                  ? 'Lanjut'
+                                  : 'Mulai',
                               style: const TextStyle(color: Colors.white),
                             ),
                           ),
@@ -173,7 +186,9 @@ class _ScreenTwoState extends State<ScreenTwo> {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: _currentPage == index ? const Color(0xFF667EEA) : Colors.grey.withOpacity(0.5),
+        color: _currentPage == index
+            ? const Color(0xFF667EEA)
+            : Colors.grey.withOpacity(0.5),
       ),
     );
   }
@@ -197,12 +212,7 @@ class OnboardingPageContent extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Ganti Text dengan Image.asset
-          Image.asset(
-            image,
-            width: 150,
-            height: 150,
-            fit: BoxFit.contain,
-          ),
+          Image.asset(image, width: 150, height: 150, fit: BoxFit.contain),
           const SizedBox(height: 40),
           Text(
             title,
@@ -217,10 +227,7 @@ class OnboardingPageContent extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 16, color: Colors.black54),
           ),
         ],
       ),

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:skillyfta/widgets/gradient_background.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String? userName;
   final String? userEmail;
 
-  const EditProfilePage({
-    super.key,
-    this.userName,
-    this.userEmail,
-  });
+  const EditProfilePage({super.key, this.userName, this.userEmail});
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -22,8 +19,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.userName ?? 'Fadiyah Maisyarah');
-    _emailController = TextEditingController(text: widget.userEmail ?? 'yayi23@gmail.com');
+    _nameController = TextEditingController(
+      text: widget.userName ?? 'Fadiyah Maisyarah',
+    );
+    _emailController = TextEditingController(
+      text: widget.userEmail ?? 'yayi23@gmail.com',
+    );
   }
 
   @override
@@ -43,10 +44,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           title: const Text(
             'Ganti Foto Profil',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           content: const Text(
             'Fitur upload foto akan segera tersedia',
@@ -93,21 +91,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
+    return GradientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
               // Header dengan gradient
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -156,7 +151,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF667EEA).withOpacity(0.3),
+                                      color: const Color(
+                                        0xFF667EEA,
+                                      ).withOpacity(0.3),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
@@ -168,7 +165,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
                                     gradient: LinearGradient(
-                                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                      colors: [
+                                        Color(0xFF667EEA),
+                                        Color(0xFF764BA2),
+                                      ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
@@ -267,11 +267,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -282,11 +286,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.red),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                    ),
                                   ),
                                   focusedErrorBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                                 validator: (value) {
@@ -339,11 +348,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey[300]!),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -354,18 +367,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   errorBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.red),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                    ),
                                   ),
                                   focusedErrorBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                                    borderSide: const BorderSide(
+                                      color: Colors.red,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Email tidak boleh kosong';
                                   }
-                                  if (!value.contains('@') || !value.contains('.')) {
+                                  if (!value.contains('@') ||
+                                      !value.contains('.')) {
                                     return 'Email tidak valid';
                                   }
                                   return null;
@@ -389,7 +408,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF667EEA).withOpacity(0.4),
+                                  color: const Color(
+                                    0xFF667EEA,
+                                  ).withOpacity(0.4),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
