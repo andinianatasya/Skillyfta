@@ -10,6 +10,9 @@ class StatistikPage extends StatefulWidget {
 }
 
 class _StatistikPageState extends State<StatistikPage> {
+  bool _showGraph = true;
+  bool _showStreak = true;
+
   @override
   Widget build(BuildContext context) {
     return GradientBackground(
@@ -20,9 +23,9 @@ class _StatistikPageState extends State<StatistikPage> {
             children: [
               _buildHeader(),
               Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(
+                  borderRadius: BorderRadius.vertical(
                     top: Radius.circular(20),
                   ),
                 ),
@@ -39,12 +42,35 @@ class _StatistikPageState extends State<StatistikPage> {
                   ],
                 ),
               ),
-
               Expanded(
                 child: Container(
                   width: double.infinity,
                   color: const Color(0xFFF5F5F5),
-                  child: const SizedBox(),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            icon: const Icon(Icons.settings_outlined, color: Colors.grey),
+                            onPressed: _showSettingsModal,
+                          ),
+                        ),
+
+                        _buildStatGrid(),
+
+                        const SizedBox(height: 20),
+
+                        if (_showGraph) _buildWeeklyProgress(),
+                        if (_showGraph && _showStreak) const SizedBox(height: 20),
+                        if (_showStreak) _buildStreakCard(),
+
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -68,7 +94,7 @@ class _StatistikPageState extends State<StatistikPage> {
                 height: 40,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.star, color: Colors.white, size: 40),
+                const Icon(Icons.auto_graph, color: Colors.white, size: 40),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -114,15 +140,12 @@ class _StatistikPageState extends State<StatistikPage> {
             );
           }
         },
-
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isSelected
-                    ? const Color(0xFF667EEA)
-                    : Colors.transparent,
+                color: isSelected ? const Color(0xFF667EEA) : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -138,6 +161,259 @@ class _StatistikPageState extends State<StatistikPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatGrid() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            _buildInfoCard("TOTAL SKILLS", "5", Colors.blueAccent),
+            const SizedBox(width: 16),
+            _buildInfoCard("MENIT HARI INI", "75", Colors.blueAccent),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            _buildInfoCard("HARI STREAK", "7", Colors.blueAccent),
+            const SizedBox(width: 16),
+            _buildInfoCard("TOTAL MENIT", "450", Colors.blueAccent),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoCard(String label, String value, Color accentColor) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF667EEA),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyProgress() {
+    final List<double> heights = [40, 60, 65, 50, 80, 100, 30];
+    final List<String> days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Progress Mingguan",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(7, (index) {
+              return Column(
+                children: [
+                  Container(
+                    width: 20,
+                    height: heights[index],
+                    decoration: BoxDecoration(
+                      color: index == 6 ? Colors.lightBlue[300] : Colors.cyan[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    days[index],
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreakCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.emoji_events, color: Colors.amber, size: 40),
+          const SizedBox(width: 16),
+          const Text(
+            "Streak 7 Hari",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSettingsModal() {
+    bool tempShowGraph = _showGraph;
+    bool tempShowStreak = _showStreak;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Pengaturan Statistik",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text("Tampilkan Grafik", style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text("Progress mingguan", style: TextStyle(color: Colors.grey)),
+                    value: tempShowGraph,
+                    activeColor: const Color(0xFF667EEA),
+                    onChanged: (bool value) {
+                      setModalState(() {
+                        tempShowGraph = value;
+                      });
+                    },
+                  ),
+                  const Divider(),
+
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text("Tampilkan Streak", style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text("Badge pencapaian hari", style: TextStyle(color: Colors.grey)),
+                    value: tempShowStreak,
+                    activeColor: const Color(0xFF667EEA),
+                    onChanged: (bool value) {
+                      setModalState(() {
+                        tempShowStreak = value;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _showGraph = tempShowGraph;
+                          _showStreak = tempShowStreak;
+                        });
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF667EEA),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        "Simpan Pengaturan",
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
