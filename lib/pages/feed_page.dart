@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skillyfta/pages/statistik_page.dart';
+import 'package:skillyfta/widgets/feed/feed_card.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
 import 'postbaru_page.dart';
 
@@ -11,41 +14,7 @@ class FeedPage extends StatefulWidget {
 }
 
 class _FeedPageState extends State<FeedPage> {
-  final List<Map<String, dynamic>> feedData = [
-    {
-      'name': 'Andi Putra',
-      'initial': 'A',
-      'color': const Color(0xFFFFA726),
-      'time': '2 menit yang lalu',
-      'badge': 'Progress',
-      'badgeIcon': 'assets/images/progress.png',
-      'content': 'Hari ini berhasil push up 20x nonstop! Progress dari minggu lalu cuma 10x. Semangat terus!!',
-      'likes': 1,
-      'comments': 1,
-    },
-    {
-      'name': 'Sari Dewi',
-      'initial': 'S',
-      'color': const Color(0xFFE91E63),
-      'time': '15 menit yang lalu',
-      'badge': 'Learning',
-      'badgeIcon': 'assets/images/learning.png',
-      'content': 'Belajar chord G mayor di gitar akhirnya lancar wk, besok target chord C mayor.\ndoain ya guys.',
-      'likes': 2,
-      'comments': 0,
-    },
-    {
-      'name': 'Rudi',
-      'initial': 'R',
-      'color': const Color(0xFF2196F3),
-      'time': '1 jam yang lalu',
-      'badge': 'Achievement',
-      'badgeIcon': 'assets/images/achievement.png',
-      'content': 'Flutter widget hari ini:\nCustomPainter, Bikin animasi loading yang keren',
-      'likes': 25,
-      'comments': 8,
-    },
-  ];
+  bool _showMyPostsOnly = false;
 
   @override
   Widget build(BuildContext context) {
@@ -75,17 +44,59 @@ class _FeedPageState extends State<FeedPage> {
                       height: 1,
                       color: Colors.grey[300],
                     ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      child: Row(
+                        children: [
+                          _buildFilterChip("Semua", !_showMyPostsOnly, () {
+                            setState(() => _showMyPostsOnly = false);
+                          }),
+                          const SizedBox(width: 12),
+                          _buildFilterChip("Postingan Saya", _showMyPostsOnly, () {
+                            setState(() => _showMyPostsOnly = true);
+                          }),
+                        ],
+                      ),
+                    ),
+                    Container(height: 1, color: Colors.grey[200]),
                   ],
                 ),
               ),
               Expanded(
                 child: Container(
                   color: const Color(0xFFF5F5F5),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: feedData.length,
-                    itemBuilder: (context, index) {
-                      return _buildFeedCard(feedData[index]);
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _getFeedStream(), 
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(
+                          child: Text(
+                            _showMyPostsOnly 
+                                ? 'Kamu belum memposting apapun.' 
+                                : 'Belum ada postingan.\nJadilah yang pertama!',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      final posts = snapshot.data!.docs;
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: posts.length,
+                        itemBuilder: (context, index) {
+                          final postDoc = posts[index];
+                          final postData = postDoc.data() as Map<String, dynamic>;
+                          return FeedCard(postId: postDoc.id, data: postData);
+                        },
+                      );
                     },
                   ),
                 ),
@@ -93,97 +104,48 @@ class _FeedPageState extends State<FeedPage> {
             ],
           ),
         ),
+        floatingActionButton: _buildFloatingActionButton()
+      ),
+    );
+  }
 
-        floatingActionButton: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF667EEA).withOpacity(0.4),
-                spreadRadius: 0,
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+  Stream<QuerySnapshot> _getFeedStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    Query query = FirebaseFirestore.instance.collection('posts');
+
+    if (_showMyPostsOnly && user != null) {
+      query = query.where('userId', isEqualTo: user.uid);
+    }
+
+    return query.orderBy('timestamp', descending: true).snapshots();
+  }
+
+  Widget _buildFloatingActionButton() {
+    return Container(
+      width: 60, height: 60,
+      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF667EEA), Color(0xFF764BA2)]), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: const Color(0xFF667EEA).withOpacity(0.4), spreadRadius: 0, blurRadius: 12, offset: const Offset(0, 4))]),
+      child: IconButton(icon: const Icon(Icons.add, size: 32, color: Colors.white), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BuatPostScreen()))),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF667EEA) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? Colors.transparent : Colors.grey[300]!,
           ),
-          child: IconButton(
-            icon: const Icon(Icons.add, size: 32, color: Colors.white),
-            onPressed: () async {
-              try {
-                final result = await Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                    const BuatPostScreen(),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                      const begin = Offset(0.0, 1.0);
-                      const end = Offset.zero;
-                      const curve = Curves.easeInOutCubic;
-      
-                      var tween = Tween(begin: begin, end: end)
-                          .chain(CurveTween(curve: curve));
-      
-                      return SlideTransition(
-                        position: animation.drive(tween),
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        ),
-                      );
-                    },
-                    transitionDuration: const Duration(milliseconds: 400),
-                  ),
-                );
-      
-                print('Result received: $result');
-                if (result != null && result is Map) {
-                  final String kategori = result['kategori']?.toString() ?? 'Progress';
-                  final String content = result['content']?.toString() ?? '';
-      
-                  if (content.isNotEmpty) {
-                    setState(() {
-                      feedData.insert(0, {
-                        'name': 'Anda',
-                        'initial': 'Y',
-                        'color': const Color(0xFF667EEA),
-                        'time': 'Baru saja',
-                        'badge': kategori,
-                        'badgeIcon': 'assets/images/${kategori.toLowerCase()}.png',
-                        'content': content,
-                        'likes': 0,
-                        'comments': 0,
-                      });
-                    });
-      
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Post berhasil dipublikasikan!'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  }
-                }
-              } catch (e) {
-                print('Error: $e');
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Terjadi kesalahan: $e'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              }
-            },
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isActive ? Colors.white : Colors.grey[600],
           ),
         ),
       ),
@@ -271,158 +233,6 @@ Widget _buildTab(String title, int index) {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildFeedCard(Map<String, dynamic> data) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border(
-          left: BorderSide(
-            color: const Color(0xFF667EEA),
-            width: 4,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF667EEA).withOpacity(0.1),
-            spreadRadius: 0,
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: data['color'],
-                child: Text(
-                  data['initial'],
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data['name'],
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          data['time'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Image.asset(
-                          data['badgeIcon'],
-                          height: 16,
-                          width: 16,
-                          errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.star_border, size: 16, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          data['badge'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            data['content'],
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              InkWell(
-                onTap: () {},
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.favorite_border,
-                      size: 20,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${data['likes']}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              InkWell(
-                onTap: () {},
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      size: 20,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${data['comments']}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

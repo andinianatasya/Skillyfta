@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
-        fontFamily: 'TimesNewRoman',
+        fontFamily: 'FamiljenGrotesk',
         scaffoldBackgroundColor: const Color(0xFF2c2a4a),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
