@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:skillyfta/services/streak_service.dart';
 
 class TimerPopup extends StatefulWidget {
   final String skillId;
@@ -71,44 +72,23 @@ class _TimerPopupState extends State<TimerPopup> {
   }
 
   void _startTimer() {
-    if (_isRunning ||
-        _isManualInput ||
-        _duration.inSeconds >= _targetTotalDetik) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _duration.inSeconds >= _targetTotalDetik
-                ? 'Target harian sudah tercapai!'
-                : 'Timer tidak bisa dimulai saat input manual.',
-          ),
-          backgroundColor: Colors.orangeAccent,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
+    if (_duration.inSeconds >= _targetTotalDetik) {
+       _showTargetReachedSnack();
+       return;
     }
-    setState(() {
-      _isRunning = true;
-    });
+    if (_isRunning || _isManualInput) return;
+
+    setState(() { _isRunning = true; });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
+      if (!mounted) { timer.cancel(); return; }
+      
       if (_duration.inSeconds >= _targetTotalDetik) {
-        _pauseTimer();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Target harian tercapai!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        setState(() {
-          _duration = Duration(seconds: _targetTotalDetik);
-        });
+         _pauseTimer(); 
+         _showTargetReachedSnack();
+         setState(() {
+           _duration = Duration(seconds: _targetTotalDetik); // Cap di target
+         });
       } else {
         setState(() {
           _duration = _duration + const Duration(seconds: 1);
@@ -120,10 +100,7 @@ class _TimerPopupState extends State<TimerPopup> {
   void _pauseTimer() {
     if (!_isRunning) return;
     _timer?.cancel();
-    if (mounted)
-      setState(() {
-        _isRunning = false;
-      });
+    if (mounted) setState(() { _isRunning = false; });
   }
 
   void _resetTimer() {
@@ -139,6 +116,11 @@ class _TimerPopupState extends State<TimerPopup> {
   }
 
   void _toggleManualInput() {
+    if (_duration.inSeconds >= _targetTotalDetik) {
+       _showTargetReachedSnack();
+       return; 
+    }
+
     if (mounted) {
       _pauseTimer();
       setState(() {
@@ -146,8 +128,8 @@ class _TimerPopupState extends State<TimerPopup> {
         if (_isManualInput) {
           _updateManualFieldsFromDuration(_duration);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _secondFocus.requestFocus();
-            _secondController.selectAll();
+            _minuteFocus.requestFocus(); // Fokus ke Menit
+            _minuteController.selectAll();
           });
         }
       });
@@ -160,6 +142,16 @@ class _TimerPopupState extends State<TimerPopup> {
     _minuteController.text = twoDigits(d.inMinutes.remainder(60));
     _secondController.text = twoDigits(d.inSeconds.remainder(60));
   }
+
+  void _showTargetReachedSnack() {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Target harian sudah tercapai!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+   }
 
   void _finishTimer() {
     _pauseTimer();
@@ -192,6 +184,12 @@ class _TimerPopupState extends State<TimerPopup> {
     _updateTotalProgressDirectly(totalDetikManual);
   }
 
+  Future<void> _checkIfTargetMet(int newProgress) async {
+     if (newProgress >= _targetTotalDetik) {
+        await StreakService().updateStreakOnSkillComplete();
+     }
+  }
+
   Future<void> _saveProgressIncrement(int detikTambahan) async {
     if (detikTambahan <= 0) {
       if (mounted) Navigator.pop(context);
@@ -213,6 +211,8 @@ class _TimerPopupState extends State<TimerPopup> {
       return;
     }
 
+    int currentProgress = widget.progressAwal + detikTambahan;
+
     try {
       await FirebaseFirestore.instance
           .collection('users')
@@ -222,6 +222,8 @@ class _TimerPopupState extends State<TimerPopup> {
           .update({
             'progressHariIni': FieldValue.increment(cappedDetikTambahan),
           });
+
+      await _checkIfTargetMet(currentProgress);
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -247,6 +249,8 @@ class _TimerPopupState extends State<TimerPopup> {
           .collection('skills')
           .doc(widget.skillId)
           .update({'progressHariIni': totalDetikHariIni});
+
+      await _checkIfTargetMet(totalDetikHariIni);
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -341,9 +345,9 @@ class _TimerPopupState extends State<TimerPopup> {
                       : Colors.grey[400],
                   size: 20,
                 ),
-                onPressed: _toggleManualInput,
-                tooltip: _isManualInput
-                    ? "Sembunyikan Input Manual"
+                onPressed: targetMet ? null :  _toggleManualInput,
+                tooltip: targetMet
+                    ? "Target Tercapai"
                     : "Tampilkan Input Manual (JJ:MM:SS)",
                 splashRadius: 20,
               ),
@@ -352,7 +356,7 @@ class _TimerPopupState extends State<TimerPopup> {
           const SizedBox(height: 10),
 
           Visibility(
-            visible: _isManualInput,
+            visible: _isManualInput && !targetMet,
             maintainState: true,
             child: Column(
               children: [
@@ -416,8 +420,12 @@ class _TimerPopupState extends State<TimerPopup> {
           ),
 
           Text(
-            'Target: $targetDisplay',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            targetMet ? 'Selamat! Target Tercapai 🎉' : 'Target: $targetDisplay',
+            style: TextStyle(
+              color: targetMet ? Colors.green : Colors.grey[600], 
+              fontSize: 13,
+              fontWeight: targetMet ? FontWeight.bold : FontWeight.normal
+            )
           ),
           const SizedBox(height: 10),
         ],
@@ -435,9 +443,7 @@ class _TimerPopupState extends State<TimerPopup> {
               ? null
               : (_isRunning ? _pauseTimer : _startTimer),
           isPrimary: true,
-          tooltip: _isRunning
-              ? "Jeda"
-              : (targetMet ? "Target Tercapai" : "Mulai"),
+          tooltip: _isRunning ? "Jeda" :  "Mulai",
         ),
         _buildControlButton(
           icon: Icons.check,

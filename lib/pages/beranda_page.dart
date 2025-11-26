@@ -2,11 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skillyfta/pages/statistik_page.dart';
+import 'package:skillyfta/widgets/beranda/progress_weekly_card.dart';
+import 'package:skillyfta/widgets/beranda/skill_card.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
-import 'package:skillyfta/widgets/timer_popup.dart';
 import 'feed_page.dart';
 import 'tambahskill_page.dart';
 import 'pengaturanprofil_page.dart';
+import '../services/streak_service.dart';
 
 class BerandaPage extends StatefulWidget {
   const BerandaPage({super.key});
@@ -15,14 +17,12 @@ class BerandaPage extends StatefulWidget {
   State<BerandaPage> createState() => _BerandaPageState();
 }
 
-class _BerandaPageState extends State<BerandaPage>
-    with SingleTickerProviderStateMixin {
+class _BerandaPageState extends State<BerandaPage> with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
   late AnimationController _animationController;
   late Animation<double> _animation;
 
-  User? _currentUser;
-  Map<String, dynamic>? _userData;
+  final StreakService _streakService = StreakService();
 
   @override
   void initState() {
@@ -37,7 +37,7 @@ class _BerandaPageState extends State<BerandaPage>
     );
     _animationController.forward();
 
-    _loadUserData();
+    _initializeData();
   }
 
   @override
@@ -46,32 +46,19 @@ class _BerandaPageState extends State<BerandaPage>
     super.dispose();
   }
 
-  Future<void> _loadUserData() async {
-    _currentUser = FirebaseAuth.instance.currentUser;
-    if (_currentUser != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_currentUser!.uid)
-            .get();
-        if (doc.exists && mounted) {
-          setState(() {
-            _userData = doc.data();
-          });
-        }
-      } catch (e) {
-        print("Error loading user data: $e");
-      }
-    }
+  Future<void> _initializeData() async {
+    await _streakService.checkAndResetDailyProgress();
   }
 
   Stream<QuerySnapshot> _getSkillsStream() {
-    if (_currentUser == null) {
+    final user = FirebaseAuth.instance.currentUser;
+    
+    if (user == null) {
       return Stream.empty();
     }
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(_currentUser!.uid)
+        .doc(user.uid)
         .collection('skills')
         .orderBy('createdAt', descending: false)
         .snapshots();
@@ -93,7 +80,7 @@ class _BerandaPageState extends State<BerandaPage>
         return 'assets/images/lukis.png';
       case 'Lainnya':
       default:
-        return 'assets/images/skill_default.png';
+        return 'assets/images/lainnya.png';
     }
   }
 
@@ -143,65 +130,85 @@ class _BerandaPageState extends State<BerandaPage>
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return GradientBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          child: Column(
-            children: [
-              StreamBuilder<QuerySnapshot>(
-                stream: _getSkillsStream(),
-                builder: (context, snapshot) {
-                  int skillCount = 0;
-                  int totalDetik = 0;
-    
-                  if (snapshot.hasData) {
-                    skillCount = snapshot.data!.docs.length;
-                    for (var doc in snapshot.data!.docs) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      int progress = (data['progressHariIni'] as num? ?? 0).toInt();
-                      totalDetik += progress;
-                    }
-                  }
-                  int totalMenit = (totalDetik / 60).floor();
-    
-                  return _buildHeader(skillCount, totalMenit);
-                },
-              ),
-    
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .snapshots(),
+            builder: (context, userSnapshot) {
+              Map<String, dynamic>? userData;
+              if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+              }
+
+              int currentStreak = userData?['currentStreak'] ?? 0;
+
+              return Column(
+                children: [
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _getSkillsStream(),
+                    builder: (context, snapshot) {
+                      int skillCount = 0;
+                      int totalDetik = 0;
+                  
+                      if (snapshot.hasData) {
+                        skillCount = snapshot.data!.docs.length;
+                        for (var doc in snapshot.data!.docs) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          int progress = (data['progressHariIni'] as num? ?? 0).toInt();
+                          totalDetik += progress;
+                        }
+                      }
+                      int totalMenit = (totalDetik / 60).floor();
+                  
+                      return _buildHeader(skillCount, totalMenit, userData);
+                    },
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
+                  
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    child: Column(
                       children: [
-                        _buildTab('Beranda', 0),
-                        _buildTab('Statistik', 1),
-                        _buildTab('Feed', 2),
+                        Row(
+                          children: [
+                            _buildTab('Beranda', 0),
+                            _buildTab('Statistik', 1),
+                            _buildTab('Feed', 2),
+                          ],
+                        ),
+                        Container(height: 1, color: Colors.grey[300]),
                       ],
                     ),
-                    Container(height: 1, color: Colors.grey[300]),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.05),
-                    end: Offset.zero,
-                  ).animate(_animation),
-                  child: FadeTransition(
-                    opacity: _animation,
-                    child: _buildContent(),
                   ),
-                ),
-              ),
-            ],
+                  Expanded(
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.05),
+                        end: Offset.zero,
+                      ).animate(_animation),
+                      child: FadeTransition(
+                        opacity: _animation,
+                        child: _buildContent(currentStreak),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
           ),
         ),
         floatingActionButton: _selectedTab == 0
@@ -270,14 +277,17 @@ class _BerandaPageState extends State<BerandaPage>
     );
   }
 
-  Widget _buildHeader(int skillCount, int totalMenit) {
-    String displayName = _userData?['fullName'] ?? 'User...';
+  Widget _buildHeader(int skillCount, int totalMenit, Map<String, dynamic>? userData) {
+    String displayName = userData?['fullName'] ?? 'User...';
     String userInitial = displayName.isNotEmpty
         ? displayName[0].toUpperCase()
         : 'U';
+    
+    int currentStreak = userData?['currentStreak'] ?? 0;
+    //int freezeCount = _userData?['streakFreezeCount'] ?? 1;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8), // Lebih ke atas
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         children: [
           Row(
@@ -384,7 +394,7 @@ class _BerandaPageState extends State<BerandaPage>
               ),
             ],
           ),
-          const SizedBox(height: 20), // Lebih jauh dari "Semangat belajar"
+          const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
             decoration: BoxDecoration(
@@ -412,278 +422,212 @@ class _BerandaPageState extends State<BerandaPage>
                   height: 32,
                   color: Colors.white.withOpacity(0.3),
                 ),
-                _buildStatItem(
-                  '12',
-                  'Hari Streak',
-                ),
+
+                _buildStatItem(currentStreak.toString(), 'Hari Streak')
               ],
             ),
           ),
-          const SizedBox(height: 8), // Lebih ke atas
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
 
-  Widget _buildContent() {
-    if (_selectedTab == 0) {
-      return Container(
-        color: const Color(0xFFF5F5F5),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.6),
-                    width: 2.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4FACFE).withOpacity(0.4),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.3),
-                      spreadRadius: -1,
-                      blurRadius: 10,
-                      offset: const Offset(0, -3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Tetap Konsisten!',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Kamu sudah latihan 12 hari berturut-turut.\nJangan sampai streak mu putus!',
-                      style: TextStyle(fontSize: 13, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+  Widget _buildContent(int currentStreak) {
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ProgressWeeklyCard(currentStreak: currentStreak),
 
-              StreamBuilder<QuerySnapshot>(
-                stream: _getSkillsStream(),
-                builder: (context, snapshot) {
-                  // 1. Tampilkan loading
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF764BA2),
-                      ),
-                    );
-                  }
+            const SizedBox(height: 16),
 
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
+            StreamBuilder<QuerySnapshot>(
+              stream: _getSkillsStream(),
+              builder: (context, snapshot) {
+                // 1. Tampilkan loading
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF764BA2),
+                    ),
+                  );
+                }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 50),
-                      child: Center(
-                        child: Text(
-                          'Belum ada skill ditambahkan.\nKlik tombol + untuk memulai!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 50),
+                    child: Center(
+                      child: Text(
+                        'Belum ada skill ditambahkan.\nKlik tombol + untuk memulai!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
                         ),
                       ),
-                    );
-                  }
-                  final skills = snapshot.data!.docs;
-
-                  return ListView.separated(
-                    itemCount: skills.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final skillDoc = skills[index];
-                      final data = skillDoc.data() as Map<String, dynamic>;
-                      final skillId = skillDoc.id;
-
-                      final String title = data['nama'] ?? 'Tanpa Nama';
-                      final String kategori = data['kategori'] ?? 'Lainnya';
-                      final int targetWaktu = (data['targetWaktu'] as num? ?? 0).toInt();
-                      final String targetUnit = data['targetUnit'] ?? 'Menit';
-                      final int progressHariIniDetik = (data['progressHariIni'] as num? ?? 0).toInt();
-
-                      int targetTotalMenit = (targetUnit == 'Jam')
-                          ? targetWaktu * 60
-                          : targetWaktu;
-
-                      String status;
-                      if (progressHariIniDetik <= 0) {
-                        status = 'Not Started';
-                      } else if (progressHariIniDetik >= (targetTotalMenit * 60)) {
-                        status = 'Done';
-                      } else {
-                        status = 'In Progress';
-                      }
-
-                      final String iconPath = _getIconPathForCategory(kategori);
-
-                      final double progress = _calculateProgress(
-                        progressHariIniDetik,
-                        targetTotalMenit,
-                      );
-
-                      final String targetText = 'Target: $targetWaktu $targetUnit/hari';
-
-                      String progressText;
-                      int progressMenit = (progressHariIniDetik / 60).floor();
-
-                      if (targetUnit == 'Jam') {
-                        progressText = '${(progressHariIniDetik / 3600).toStringAsFixed(1)} / $targetWaktu Jam hari ini';
-                      } else {
-                        progressText = '$progressMenit / $targetWaktu Menit hari ini';
-                      }
-
-                      final Color statusColor = _getStatusTextColor(status);
-
-                      return _buildSkillCard(
-                        skillId: skillId,
-                        icon: iconPath,
-                        title: title,
-                        target: targetText,
-                        progress: progress,
-                        progressText: progressText,
-                        status: status,
-                        statusColor: statusColor,
-                        targetWaktu: targetWaktu,
-                        targetUnit: targetUnit,
-                        progressAwal: progressHariIniDetik,
-                      );
-                    },
+                    ),
                   );
-                },
-              ),
+                }
+                final skills = snapshot.data!.docs;
 
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerRight,
-                    end: Alignment.centerLeft,
-                    colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.6),
-                    width: 2.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00F2FE).withOpacity(0.4),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.3),
-                      spreadRadius: -1,
-                      blurRadius: 10,
-                      offset: const Offset(0, -3),
-                    ),
-                  ],
+                return ListView.separated(
+                  itemCount: skills.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final skillDoc = skills[index];
+                    final data = skillDoc.data() as Map<String, dynamic>;
+                    final skillId = skillDoc.id;
+
+                    final String title = data['nama'] ?? 'Tanpa Nama';
+                    final String kategori = data['kategori'] ?? 'Lainnya';
+                    final int targetWaktu = (data['targetWaktu'] as num? ?? 0).toInt();
+                    final String targetUnit = data['targetUnit'] ?? 'Menit';
+                    final int progressHariIniDetik = (data['progressHariIni'] as num? ?? 0).toInt();
+
+                    int targetTotalMenit = (targetUnit == 'Jam')
+                        ? targetWaktu * 60
+                        : targetWaktu;
+
+                    String status;
+                    if (progressHariIniDetik <= 0) {
+                      status = 'Not Started';
+                    } else if (progressHariIniDetik >= (targetTotalMenit * 60)) {
+                      status = 'Done';
+                    } else {
+                      status = 'In Progress';
+                    }
+
+                    final String iconPath = _getIconPathForCategory(kategori);
+
+                    final double progress = _calculateProgress(
+                      progressHariIniDetik,
+                      targetTotalMenit,
+                    );
+
+                    String progressText;
+                    int progressMenit = (progressHariIniDetik / 60).floor();
+
+                    if (targetUnit == 'Jam') {
+                      progressText = '${(progressHariIniDetik / 3600).toStringAsFixed(1)} / $targetWaktu Jam hari ini';
+                    } else {
+                      progressText = '$progressMenit / $targetWaktu Menit hari ini';
+                    }
+
+                    return SkillCard(
+                      skillId: skillId,
+                      icon: iconPath,
+                      title: title,
+                      target: 'Target: $targetWaktu $targetUnit/hari',
+                      progress: progress,
+                      progressText: progressText,
+                      status: status,
+                      targetWaktu: targetWaktu,
+                      targetUnit: targetUnit,
+                      progressAwal: progressHariIniDetik,
+                    );
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.centerRight,
+                  end: Alignment.centerLeft,
+                  colors: [Color(0xFF00F2FE), Color(0xFF4FACFE)],
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Progress Mingguan',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.6),
+                  width: 2.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00F2FE).withOpacity(0.4),
+                    spreadRadius: 1,
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.3),
+                    spreadRadius: -1,
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Progress Mingguan',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Image.asset(
-                                'assets/images/piala.png',
-                                height: 36,
-                                width: 36,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.3),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Center(
-                                        child: Text(
-                                          '🏆',
-                                          style: TextStyle(fontSize: 24),
-                                        ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Image.asset(
+                              'assets/images/piala.png',
+                              height: 36,
+                              width: 36,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        '🏆',
+                                        style: TextStyle(fontSize: 24),
                                       ),
                                     ),
+                                  ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Streak $currentStreak Hari',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Streak 7 Hari',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
-      );
-    } else {
-      return Container(
-        color: const Color(0xFFF5F5F5),
-        child: const Center(
-          child: Text(
-            'Halaman Statistik\n(Coming Soon)',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   Widget _buildStatItem(String value, String label) {
@@ -734,267 +678,6 @@ class _BerandaPageState extends State<BerandaPage>
     );
   }
 
-  String _getStatusIconPath(String status) {
-    switch (status) {
-      case 'Done':
-        return 'assets/images/done.png';
-      case 'In Progress':
-        return 'assets/images/inprogress.png';
-      case 'Not Started':
-        return 'assets/images/notstarted.png';
-      default:
-        return 'assets/images/notstarted.png';
-    }
-  }
-
-  Color _getStatusTextColor(String status) {
-    switch (status) {
-      case 'Done':
-        return const Color(0xFF4CAF50);
-      case 'In Progress':
-        return const Color(0xFFFFA726);
-      case 'Not Started':
-        return const Color(0xFF9E9E9E);
-      default:
-        return const Color(0xFF9E9E9E);
-    }
-  }
-
-  Color _getStatusBackgroundColor(String status) {
-    switch (status) {
-      case 'Done':
-        return const Color(0xFFE8F5E9);
-      case 'In Progress':
-        return const Color(0xFFFFF3E0);
-      case 'Not Started':
-        return const Color(0xFFF5F5F5);
-      default:
-        return const Color(0xFFF5F5F5);
-    }
-  }
-
-  Color _getIconContainerColor(String status) {
-    switch (status) {
-      case 'Done':
-        return const Color(0xFFC8E6C9);
-      case 'In Progress':
-        return const Color(0xFFFFE0B2);
-      case 'Not Started':
-        return const Color(0xFFEEEEEE);
-      default:
-        return const Color(0xFFEEEEEE);
-    }
-  }
-
-  Widget _buildSkillCard({
-    required String skillId,
-    required String icon,
-    required String title,
-    required String target,
-    required double progress,
-    required String progressText,
-    required String status,
-    required Color statusColor,
-    required int targetWaktu,
-    required String targetUnit,
-    required int progressAwal,
-  }) {
-    final statusTextColor = _getStatusTextColor(status);
-    final statusBgColor = _getStatusBackgroundColor(status);
-    final iconContainerColor = _getIconContainerColor(status);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF667EEA).withOpacity(0.15),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF667EEA).withOpacity(0.15),
-            spreadRadius: 0,
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Image.asset(
-                icon,
-                height: 44,
-                width: 44,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.school,
-                  size: 44,
-                  color: Color(0xFF764BA2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          target,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.edit, size: 13, color: Colors.grey[400]),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF764BA2).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Image.asset(
-                    'assets/images/alarm.png',
-                    height: 18,
-                    width: 18,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.alarm,
-                      color: Color(0xFF764BA2),
-                      size: 18,
-                    ),
-                  ),
-                ),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (BuildContext context) {
-                      return TimerPopup(
-                        skillId: skillId,
-                        skillNama: title,
-                        targetWaktu: targetWaktu,
-                        targetUnit: targetUnit,
-                        progressAwal: progressAwal,
-                      );
-                    },
-                  );
-                },
-                tooltip: "Mulai Timer / Input Progress",
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Stack(
-              children: [
-                Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: progress,
-                  child: Container(
-                    height: 6,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                progressText,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusBgColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: iconContainerColor,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Image.asset(
-                        _getStatusIconPath(status),
-                        height: 10,
-                        width: 10,
-                        color: statusTextColor,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          status == 'Done' ? Icons.check : Icons.close,
-                          size: 10,
-                          color: statusTextColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: statusTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showProfilePictureDialog(BuildContext context, String displayName, String userInitial) {
     showDialog(
