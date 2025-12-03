@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String? userName;
@@ -19,11 +21,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
+    User? user = FirebaseAuth.instance.currentUser;
     _nameController = TextEditingController(
-      text: widget.userName ?? 'Fadiyah Maisyarah',
+      text: widget.userName ?? user?.displayName ?? '',
     );
     _emailController = TextEditingController(
-      text: widget.userEmail ?? 'yayi23@gmail.com',
+      text: widget.userEmail ?? user?.email ?? '',
     );
   }
 
@@ -34,7 +37,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  void _pickImage() {
+
+  String _getInitials() {
+    if (_nameController.text.isNotEmpty) {
+      return _nameController.text[0].toUpperCase();
+    }
+    return 'U';
+  }
+
+  void _handleCameraTap() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -67,25 +78,152 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  void _saveProfile() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Profil berhasil diperbarui'),
-          backgroundColor: const Color(0xFF667EEA),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+  Future<String?> _showReauthDialog() async {
+    String? password;
+    return await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Verifikasi Keamanan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                  'Untuk mengganti email, mohon masukkan password Anda saat ini.'),
+              const SizedBox(height: 16),
+              TextField(
+                obscureText: true,
+                onChanged: (value) => password = value,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
-          duration: const Duration(seconds: 2),
-        ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, password),
+              child: const Text('Verifikasi'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _saveProfile() async {
+    if (_formKey.currentState!.validate()) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      Future.delayed(const Duration(milliseconds: 500), () {
+      try {
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+
+        //Update nama
+        if (user.displayName != _nameController.text) {
+          await user.updateDisplayName(_nameController.text);
+        }
+
+        //Update email
+        if (user.email != _emailController.text) {
+          try {
+            await user.verifyBeforeUpdateEmail(_emailController.text);
+          } on FirebaseAuthException catch (e) {
+            // Jika error karena butuh login ulang
+            if (e.code == 'requires-recent-login') {
+              Navigator.pop(context);
+
+              String? password = await _showReauthDialog();
+
+              if (password != null && password.isNotEmpty) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) =>
+                  const Center(child: CircularProgressIndicator()),
+                );
+
+                AuthCredential credential = EmailAuthProvider.credential(
+                  email: user.email!,
+                  password: password,
+                );
+
+                await user.reauthenticateWithCredential(credential);
+                await user.verifyBeforeUpdateEmail(_emailController.text);
+              } else {
+                return;
+              }
+            } else {
+              rethrow;
+            }
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Email verifikasi dikirim. Silakan cek inbox email baru Anda.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        //Update Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+          'fullName': _nameController.text,
+          'email': _emailController.text,
+        });
+
         if (mounted) {
           Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profil berhasil diperbarui'),
+              backgroundColor: const Color(0xFF667EEA),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+          Navigator.pop(context, true);
         }
-      });
+      } on FirebaseAuthException catch (e) {
+        Navigator.pop(context);
+        String message = 'Terjadi kesalahan';
+        if (e.code == 'wrong-password') {
+          message = 'Password yang Anda masukkan salah.';
+        } else if (e.code == 'email-already-in-use') {
+          message = 'Email sudah digunakan oleh akun lain.';
+        } else {
+          message = 'Error: ${e.message}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      } catch (e) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -97,7 +235,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         body: SafeArea(
           child: Column(
             children: [
-              // Header dengan gradient
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -143,7 +280,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         children: [
                           const SizedBox(height: 20),
 
-                          // Profile Picture dengan Gradient
                           Stack(
                             children: [
                               Container(
@@ -173,10 +309,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                       end: Alignment.bottomRight,
                                     ),
                                   ),
-                                  child: const Center(
+                                  child: Center(
                                     child: Text(
-                                      'F',
-                                      style: TextStyle(
+                                      _getInitials(),
+                                      style: const TextStyle(
                                         fontSize: 48,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
@@ -189,13 +325,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 bottom: 0,
                                 right: 0,
                                 child: GestureDetector(
-                                  onTap: _pickImage,
+                                  onTap: _handleCameraTap,
                                   child: Container(
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF4CAF50), // Hijau
+                                      color: const Color(0xFF4CAF50),
                                       shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
                                       boxShadow: [
                                         BoxShadow(
                                           color: Colors.black.withOpacity(0.2),
@@ -204,20 +344,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                         ),
                                       ],
                                     ),
-                                    child: Center(
-                                      child: Image.asset(
-                                        'assets/icons/camera.png', // Ganti dengan path icon PNG Anda
-                                        width: 18,
-                                        height: 18,
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.camera_alt,
                                         color: Colors.white,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          // Fallback jika image tidak ditemukan
-                                          return const Icon(
-                                            Icons.camera_alt,
-                                            color: Colors.white,
-                                            size: 18,
-                                          );
-                                        },
+                                        size: 18,
                                       ),
                                     ),
                                   ),
@@ -228,7 +359,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           const SizedBox(height: 40),
 
-                          // Nama Lengkap Field
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -243,6 +373,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               const SizedBox(height: 8),
                               TextFormField(
                                 controller: _nameController,
+                                onChanged: (value) => setState(() {}),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 15,
@@ -250,10 +381,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 ),
                                 decoration: InputDecoration(
                                   hintText: 'Masukkan nama lengkap',
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 14,
-                                  ),
                                   suffixIcon: Icon(
                                     Icons.edit,
                                     color: Colors.grey[400],
@@ -261,49 +388,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 16,
-                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF667EEA),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.red,
-                                      width: 2,
-                                    ),
                                   ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Nama tidak boleh kosong';
-                                  }
-                                  if (value.length < 3) {
-                                    return 'Nama minimal 3 karakter';
                                   }
                                   return null;
                                 },
@@ -313,7 +404,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           const SizedBox(height: 24),
 
-                          // Email Field
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -336,55 +426,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 ),
                                 decoration: InputDecoration(
                                   hintText: 'Masukkan email',
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 14,
-                                  ),
                                   filled: true,
                                   fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 16,
-                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF667EEA),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Colors.red,
-                                      width: 2,
-                                    ),
                                   ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Email tidak boleh kosong';
                                   }
-                                  if (!value.contains('@') ||
-                                      !value.contains('.')) {
+                                  if (!value.contains('@')) {
                                     return 'Email tidak valid';
                                   }
                                   return null;
@@ -395,7 +447,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           const SizedBox(height: 120),
 
-                          // Button Simpan Pengaturan (tanpa divider)
                           Container(
                             width: double.infinity,
                             height: 50,
@@ -406,15 +457,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 end: Alignment.centerRight,
                               ),
                               borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF667EEA,
-                                  ).withOpacity(0.4),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
                             ),
                             child: ElevatedButton(
                               onPressed: _saveProfile,
@@ -435,7 +477,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 20),
                         ],
                       ),

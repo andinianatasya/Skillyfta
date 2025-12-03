@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Tambahkan package intl di pubspec.yaml jika belum ada
+import 'package:intl/intl.dart';
 import '../widgets/gradient_background.dart';
 import 'feed_page.dart';
 
@@ -13,7 +13,6 @@ class StatistikPage extends StatefulWidget {
 }
 
 class _StatistikPageState extends State<StatistikPage> {
-  // Static state agar settingan tidak hilang saat pindah page
   static bool _showGraph = true;
   static bool _showStreak = true;
 
@@ -24,29 +23,21 @@ class _StatistikPageState extends State<StatistikPage> {
 
   User? _currentUser;
 
-  // Variabel Data Statistik
   int _totalSkills = 0;
   int _menitHariIni = 0;
   int _totalMenitLifetime = 0;
   int _streak = 0;
-  List<double> _weeklyData = [0, 0, 0, 0, 0, 0, 0]; // Default kosong
-  List<String> _daysLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+  List<double> _weeklyData = [0, 0, 0, 0, 0, 0, 0];
+  final List<String> _daysLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
   @override
   void initState() {
     super.initState();
     _currentUser = FirebaseAuth.instance.currentUser;
-    _generateDayLabels(); // Generate nama hari dinamis
-    _fetchUserData(); // Ambil data user (streak, total lifetime, graph)
+    _fetchUserData();
   }
 
-  // Generate label hari agar sesuai urutan hari ini (Opsional, atau tetap statis Sen-Min)
-  void _generateDayLabels() {
-    // Jika ingin statis Sen-Min, biarkan default.
-    // Jika ingin dinamis (hari ini paling kanan), gunakan logika DateTime.
-  }
-
-  // Stream untuk Skill (Total Skill & Menit Hari Ini)
   Stream<QuerySnapshot> _getSkillsStream() {
     if (_currentUser == null) return Stream.empty();
     return FirebaseFirestore.instance
@@ -56,7 +47,6 @@ class _StatistikPageState extends State<StatistikPage> {
         .snapshots();
   }
 
-  // Fetch data User (Streak, Total Menit Lifetime, History Mingguan)
   Future<void> _fetchUserData() async {
     if (_currentUser == null) return;
 
@@ -69,20 +59,31 @@ class _StatistikPageState extends State<StatistikPage> {
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
 
-        setState(() {
-          _streak = (data['streak'] ?? 0).toInt();
-          _totalMenitLifetime = (data['totalMinutes'] ?? 0).toInt();
+        int dbStreak = (data['currentStreak'] ?? 0).toInt();
+        int dbTotalMinutes = (data['totalMinutes'] ?? 0).toInt();
 
-          // Mengambil data grafik mingguan (misal disimpan dalam field 'weeklyStats')
-          // Format di DB diharapkan List<dynamic> atau Map
-          if (data['weeklyStats'] != null) {
-            List<dynamic> stats = data['weeklyStats'];
-            // Pastikan ambil 7 data terakhir
-            if (stats.length >= 7) {
-              _weeklyData = stats.map((e) => (e as num).toDouble()).toList();
-            }
+        List<double> tempWeeklyData = [0, 0, 0, 0, 0, 0, 0];
+        Map<String, dynamic> dailyHistory = data['dailyHistory'] ?? {};
+
+        DateTime now = DateTime.now();
+        DateTime monday = now.subtract(Duration(days: now.weekday - 1));
+
+        for (int i = 0; i < 7; i++) {
+          DateTime checkDate = monday.add(Duration(days: i));
+          String dateKey = DateFormat('yyyy-MM-dd').format(checkDate);
+
+          if (dailyHistory.containsKey(dateKey)) {
+            tempWeeklyData[i] = (dailyHistory[dateKey] as num).toDouble();
           }
-        });
+        }
+
+        if (mounted) {
+          setState(() {
+            _streak = dbStreak;
+            _totalMenitLifetime = dbTotalMinutes;
+            _weeklyData = tempWeeklyData;
+          });
+        }
       }
     } catch (e) {
       debugPrint("Error fetching user stats: $e");
@@ -127,7 +128,6 @@ class _StatistikPageState extends State<StatistikPage> {
                   child: StreamBuilder<QuerySnapshot>(
                     stream: _getSkillsStream(),
                     builder: (context, snapshot) {
-                      // Logic kalkulasi data real-time dari collection skills
                       if (snapshot.hasData) {
                         _totalSkills = snapshot.data!.docs.length;
                         int totalDetikHariIni = 0;
@@ -136,7 +136,6 @@ class _StatistikPageState extends State<StatistikPage> {
                           var data = doc.data() as Map<String, dynamic>;
                           totalDetikHariIni += (data['progressHariIni'] as num? ?? 0).toInt();
                         }
-
                         _menitHariIni = (totalDetikHariIni / 60).floor();
                       }
 
@@ -146,18 +145,14 @@ class _StatistikPageState extends State<StatistikPage> {
                             padding: const EdgeInsets.only(top: 40, left: 20, right: 20, bottom: 20),
                             child: Column(
                               children: [
-                                // Kirim data real ke Grid
                                 _buildDynamicStatGrid(),
                                 const SizedBox(height: 20),
-
                                 if (_showGraph || _showStreak)
                                   _buildCombinedChartAndStreakCard(),
-
                                 const SizedBox(height: 20),
                               ],
                             ),
                           ),
-
                           Positioned(
                             top: 0,
                             right: 10,
@@ -181,14 +176,16 @@ class _StatistikPageState extends State<StatistikPage> {
     );
   }
 
+
   Widget _buildDynamicStatGrid() {
     double aspectRatio;
-
     if (_showGraph || _showStreak) {
       aspectRatio = 1.4;
     } else {
       aspectRatio = 0.8;
     }
+
+    int displayTotalMinutes = _totalMenitLifetime + _menitHariIni;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -198,12 +195,10 @@ class _StatistikPageState extends State<StatistikPage> {
       mainAxisSpacing: 16,
       childAspectRatio: aspectRatio,
       children: [
-        // Menggunakan variabel state (_totalSkills, _menitHariIni, dst)
         _buildInfoCard("TOTAL SKILLS", _totalSkills.toString(), Colors.blueAccent),
         _buildInfoCard("MENIT HARI INI", _menitHariIni.toString(), Colors.orangeAccent),
         _buildInfoCard("HARI STREAK", _streak.toString(), Colors.purpleAccent),
-        // Untuk total menit lifetime, jika belum ada di DB, kita bisa gunakan (totalMenitLifetime + menitHariIni)
-        _buildInfoCard("TOTAL MENIT", (_totalMenitLifetime + _menitHariIni).toString(), Colors.greenAccent),
+        _buildInfoCard("TOTAL MENIT", displayTotalMinutes.toString(), Colors.greenAccent),
       ],
     );
   }
@@ -229,24 +224,18 @@ class _StatistikPageState extends State<StatistikPage> {
         mainAxisAlignment: (!_showGraph && _showStreak)
             ? MainAxisAlignment.center
             : MainAxisAlignment.start,
-
         children: [
           if (_showGraph) ...[
             Text(
               "Progress Mingguan",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: _textDark,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textDark),
             ),
             const SizedBox(height: 24),
-            _buildBarChart(), // Pass data grafik disini jika sudah siap
+            _buildBarChart(),
             if (!_showStreak) const SizedBox(height: 40),
           ],
           if (_showGraph && _showStreak) const SizedBox(height: 40),
-
           if (_showStreak)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -254,12 +243,8 @@ class _StatistikPageState extends State<StatistikPage> {
                 const Icon(Icons.emoji_events, color: Colors.amber, size: 36),
                 const SizedBox(width: 12),
                 Text(
-                  "Streak $_streak Hari", // Menggunakan variabel Streak
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                  ),
+                  "Streak $_streak Hari",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -269,44 +254,51 @@ class _StatistikPageState extends State<StatistikPage> {
   }
 
   Widget _buildBarChart() {
-    // Data Dummy untuk sementara jika _weeklyData masih kosong/0 semua
-    // Supaya UI tetap cantik saat data kosong
-    final List<double> displayHeights = _weeklyData.every((e) => e == 0)
-        ? [40, 60, 65, 50, 80, 100, 30] // Data dummy
-        : _weeklyData;
-
-    // Normalisasi data grafik agar fit di height 100
-    double maxValue = displayHeights.reduce((curr, next) => curr > next ? curr : next);
-    if (maxValue == 0) maxValue = 1; // hindari bagi 0
+    double maxValue = 100;
+    int todayIndex = DateTime.now().weekday - 1;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(7, (index) {
-        // Kalkulasi tinggi bar relatif terhadap max value (max height 100)
-        double relativeHeight = (displayHeights[index] / maxValue) * 100;
-        if(relativeHeight < 10) relativeHeight = 10; // Minimal height
+        double value = _weeklyData[index];
+        if (value > 100) value = 100;
+        double barHeight = (value / maxValue) * 120;
+        if (barHeight < 10 && value > 0) barHeight = 10;
+        if (value == 0) barHeight = 4;
+        bool isToday = index == todayIndex;
 
         return Column(
           children: [
+            if (value > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  "${value.toInt()}",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isToday ? const Color(0xFF764BA2) : Colors.grey[600]),
+                ),
+              ),
             Container(
               width: 18,
-              height: relativeHeight, // Gunakan tinggi dinamis
+              height: barHeight,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: index == 6
-                      ? [Colors.cyanAccent, Colors.blueAccent]
+                  colors: isToday
+                      ? [const Color(0xFF667EEA), const Color(0xFF764BA2)]
                       : [Colors.cyanAccent.shade200, Colors.blueAccent.shade100],
                 ),
                 borderRadius: BorderRadius.circular(6),
+                boxShadow: value >= 100 ? [
+                  BoxShadow(color: (isToday ? const Color(0xFF667EEA) : Colors.cyanAccent).withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))
+                ] : null,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _daysLabels[index],
-              style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 12, color: isToday ? _purpleGradient : Colors.grey[400], fontWeight: isToday ? FontWeight.bold : FontWeight.normal),
             ),
           ],
         );
@@ -314,19 +306,13 @@ class _StatistikPageState extends State<StatistikPage> {
     );
   }
 
-  // ... (SISA KODE SAMA: _showSettingsModal, _buildHeader, _buildTab, _buildInfoCard)
-  // Tidak ada perubahan logika backend di bagian ini, cukup copy paste method UI-nya.
-
   void _showSettingsModal() {
     bool tempShowGraph = _showGraph;
     bool tempShowStreak = _showStreak;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -339,56 +325,34 @@ class _StatistikPageState extends State<StatistikPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Pengaturan Statistik",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: _textDark,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: _textFaded),
-                        onPressed: () => Navigator.pop(context),
-                      )
+                      Text("Pengaturan Statistik", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _textDark)),
+                      IconButton(icon: Icon(Icons.close, color: _textFaded), onPressed: () => Navigator.pop(context))
                     ],
                   ),
                   const SizedBox(height: 24),
-
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text("Tampilkan Grafik",
-                        style: TextStyle(fontWeight: FontWeight.w600, color: _textDark)),
-                    subtitle: Text("Progress mingguan",
-                        style: TextStyle(color: _textFaded)),
+                    title: Text("Tampilkan Grafik", style: TextStyle(fontWeight: FontWeight.w600, color: _textDark)),
+                    subtitle: Text("Progress mingguan", style: TextStyle(color: _textFaded)),
                     value: tempShowGraph,
                     activeColor: _blueGradient,
                     onChanged: (bool value) => setModalState(() => tempShowGraph = value),
                   ),
                   const Divider(),
-
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text("Tampilkan Streak",
-                        style: TextStyle(fontWeight: FontWeight.w600, color: _textDark)),
-                    subtitle: Text("Badge pencapaian hari",
-                        style: TextStyle(color: _textFaded)),
+                    title: Text("Tampilkan Streak", style: TextStyle(fontWeight: FontWeight.w600, color: _textDark)),
+                    subtitle: Text("Badge pencapaian hari", style: TextStyle(color: _textFaded)),
                     value: tempShowStreak,
                     activeColor: _blueGradient,
                     onChanged: (bool value) => setModalState(() => tempShowStreak = value),
                   ),
-
                   const SizedBox(height: 32),
-
                   Container(
                     width: double.infinity,
                     height: 50,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [_purpleGradient, _blueGradient],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
+                      gradient: LinearGradient(colors: [_purpleGradient, _blueGradient], begin: Alignment.centerLeft, end: Alignment.centerRight),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: ElevatedButton(
@@ -399,17 +363,8 @@ class _StatistikPageState extends State<StatistikPage> {
                         });
                         Navigator.pop(context);
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "Simpan Pengaturan",
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: const Text("Simpan Pengaturan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -429,77 +384,33 @@ class _StatistikPageState extends State<StatistikPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                'assets/images/logo.png',
-                width: 40,
-                height: 40,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.star, color: Colors.white, size: 40),
-              ),
+              Image.asset('assets/images/logo.png', width: 40, height: 40, fit: BoxFit.contain, errorBuilder: (context, error, stackTrace) => const Icon(Icons.star, color: Colors.white, size: 40)),
               const SizedBox(width: 12),
-              const Text(
-                'Skillyfta',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+              const Text('Skillyfta', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Pantau perkembangan skill mu setiap hari',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white,
-            ),
-          ),
+          const Text('Pantau perkembangan skill mu setiap hari', style: TextStyle(fontSize: 14, color: Colors.white)),
         ],
       ),
     );
   }
 
   Widget _buildTab(String title, int index) {
-    final isSelected = index == 1; // Index 1 is Statistik
+    final isSelected = index == 1;
     return Expanded(
       child: InkWell(
         onTap: () {
           if (index == 0) {
             Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (index == 2) {
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) =>const FeedPage(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-                transitionDuration: const Duration(milliseconds: 300),
-              ),
-            );
+            Navigator.push(context, PageRouteBuilder(pageBuilder: (context, animation, secondaryAnimation) => const FeedPage(), transitionsBuilder: (context, animation, secondaryAnimation, child) { return FadeTransition(opacity: animation, child: child); }, transitionDuration: const Duration(milliseconds: 300)));
           }
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected ? const Color(0xFF667EEA) : Colors.transparent,
-                width: 3,
-              ),
-            ),
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? const Color(0xFF667EEA) : Colors.grey,
-            ),
-          ),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: isSelected ? const Color(0xFF667EEA) : Colors.transparent, width: 3))),
+          child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? const Color(0xFF667EEA) : Colors.grey)),
         ),
       ),
     );
@@ -507,40 +418,13 @@ class _StatistikPageState extends State<StatistikPage> {
 
   Widget _buildInfoCard(String label, String value, Color accentColor) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            spreadRadius: 2,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 2, blurRadius: 10, offset: const Offset(0, 4))]),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF667EEA),
-            ),
-          ),
+          Text(value, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: const Color(0xFF667EEA))),
           const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: _textFaded,
-              letterSpacing: 0.5,
-            ),
-          ),
+          Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _textFaded, letterSpacing: 0.5)),
         ],
       ),
     );

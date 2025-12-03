@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -26,25 +27,65 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     super.dispose();
   }
 
-  void _changePassword() {
+  Future<void> changePassword() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Password berhasil diubah'),
-          backgroundColor: const Color(0xFF667EEA),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          Navigator.pop(context);
+      try {
+        User? user = FirebaseAuth.instance.currentUser;
+
+        if (user != null && user.email != null) {
+          // 1. Buat kredensial dari password lama
+          AuthCredential credential = EmailAuthProvider.credential(
+            email: user.email!,
+            password: _oldPasswordController.text,
+          );
+
+          // 2. Re-autentikasi User
+          await user.reauthenticateWithCredential(credential);
+
+          // 3. Update Password
+          await user.updatePassword(_newPasswordController.text);
+
+          if (mounted) {
+            Navigator.pop(context); // Tutup loading
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Password berhasil diubah'),
+                backgroundColor: const Color(0xFF667EEA),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            });
+          }
         }
-      });
+      } on FirebaseAuthException catch (e) {
+        Navigator.pop(context); // Tutup loading
+        String errorMessage = 'Gagal mengubah password';
+
+        if (e.code == 'wrong-password') {
+          errorMessage = 'Password lama salah.';
+        } else if (e.code == 'weak-password') {
+          errorMessage = 'Password baru terlalu lemah.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -189,7 +230,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                               ],
                             ),
                             child: ElevatedButton(
-                              onPressed: _changePassword,
+                              onPressed: changePassword,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
 import 'editprofil_page.dart';
 import 'ubahpassword_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsPage extends StatefulWidget {
   final String? userName;
@@ -13,21 +14,57 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver {
   bool _isProfilePublic = true;
   bool _shareProgress = true;
   bool _dailyReminder = true;
   bool _progressUpdate = false;
 
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadCurrentUser();
+    }
+  }
+
+  Future<void> _loadCurrentUser() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.reload(); // Paksa refresh data (PENTING)
+      if (mounted) {
+        setState(() {
+          _currentUser = FirebaseAuth.instance.currentUser;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final displayName = _currentUser?.displayName ?? widget.userName ?? 'User';
+    final email = _currentUser?.email ?? 'Belum ada email';
+
     return GradientBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Column(
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -76,22 +113,28 @@ class _SettingsPageState extends State<SettingsPage> {
                           color: const Color(0xFF667EEA),
                         ),
                         const SizedBox(height: 12),
+
+
                         _buildSettingTile(
                           title: 'Edit Profil',
-                          subtitle: 'Ubah nama, email, dan foto profil',
-                          onTap: () {
-                            Navigator.push(
+                          subtitle: email,
+                          onTap: () async {
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => EditProfilePage(
-                                  userName:
-                                      widget.userName ?? 'Fadiyah Maisyarah',
-                                  userEmail: 'yayi23@gmail.com',
+                                  userName: _currentUser?.displayName,
+                                  userEmail: _currentUser?.email,
                                 ),
                               ),
                             );
+
+                            if (result == true) {
+                              await _loadCurrentUser();
+                            }
                           },
                         ),
+
                         const SizedBox(height: 12),
                         _buildSettingTile(
                           title: 'Ubah Password',
@@ -101,7 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    const ChangePasswordPage(),
+                                const ChangePasswordPage(),
                               ),
                             );
                           },
@@ -254,6 +297,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  // Text ini sekarang akan menampilkan EMAIL, bukan teks statis
                   Text(
                     subtitle,
                     style: TextStyle(fontSize: 13, color: Colors.grey[600]),
