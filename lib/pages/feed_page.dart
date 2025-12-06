@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/pages/notification_page.dart';
 import 'package:skillyfta/pages/statistik_page.dart';
 import 'package:skillyfta/widgets/feed/feed_card.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
@@ -55,6 +56,51 @@ class _FeedPageState extends State<FeedPage> {
                           _buildFilterChip("Postingan Saya", _showMyPostsOnly, () {
                             setState(() => _showMyPostsOnly = true);
                           }),
+
+                          const Spacer(),
+
+                          StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(FirebaseAuth.instance.currentUser?.uid)
+                                .collection('notifications')
+                                .where('isRead', isEqualTo: false) // Hanya hitung yang belum dibaca
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              int unreadCount = 0;
+                              if (snapshot.hasData) {
+                                unreadCount = snapshot.data!.docs.length;
+                              }
+
+                              return IconButton(
+                                icon: Badge(
+                                  isLabelVisible: unreadCount > 0, 
+                                  
+                                  backgroundColor: Colors.red, 
+                                  
+                                  label: Text(
+                                    '$unreadCount', 
+                                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                                  ),
+                                  
+                                  child: const Icon(
+                                    Icons.notifications_outlined,
+                                    color: Colors.grey,
+                                    size: 26,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const NotificationPage()),
+                                  );
+                                },
+                                tooltip: "Notifikasi",
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -134,10 +180,23 @@ class _FeedPageState extends State<FeedPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF667EEA) : Colors.grey[100],
           borderRadius: BorderRadius.circular(20),
+          gradient: isActive
+              ? const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xFF667EEA),
+                    Color(0xFF764BA2),
+                  ],
+                )
+              : null, 
+          color: isActive ? null : Colors.grey[100], 
+
           border: Border.all(
-            color: isActive ? Colors.transparent : Colors.grey[300]!,
+            color: isActive 
+                ? Colors.transparent 
+                : Colors.grey[300]!,
           ),
         ),
         child: Text(
@@ -145,7 +204,9 @@ class _FeedPageState extends State<FeedPage> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isActive ? Colors.white : Colors.grey[600],
+            color: isActive 
+                ? Colors.white 
+                : Colors.grey[600],
           ),
         ),
       ),

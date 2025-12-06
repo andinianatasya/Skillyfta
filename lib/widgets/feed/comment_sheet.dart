@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/utils/ui_helper.dart';
 import 'package:skillyfta/widgets/feed/comment_item.dart';
 
 class CommentSheet extends StatefulWidget {
@@ -18,6 +19,7 @@ class _CommentSheetState extends State<CommentSheet> {
   String? _replyToCommentId;
   String? _replyToUserName;
   bool _isSending = false;
+  String? _replyToUserId;
 
   // Fungsi Kirim Komentar
   Future<void> _sendComment() async {
@@ -49,6 +51,23 @@ class _CommentSheetState extends State<CommentSheet> {
         });
         
         await commentRef.update({'replyCount': FieldValue.increment(1)});
+
+        if (_replyToUserId != null && _replyToUserId != user.uid) {
+           await FirebaseFirestore.instance
+               .collection('users')
+               .doc(_replyToUserId)
+               .collection('notifications')
+               .add({
+                 'type': 'reply',
+                 'fromUserId': user.uid,
+                 'fromUserName': userName,
+                 'fromUserInitial': userInitial,
+                 'postId': widget.postId,
+                 'content': text,
+                 'timestamp': FieldValue.serverTimestamp(),
+                 'isRead': false,
+               });
+        }
 
       } else {
         await postRef.collection('comments').add({
@@ -115,11 +134,12 @@ class _CommentSheetState extends State<CommentSheet> {
     }
   }
 
-  void _startReply(String parentCommentId, String targetUserName) {
+  void _startReply(String parentCommentId, String targetUserName, String targetUserId) {
     setState(() {
       _isReplying = true;
       _replyToCommentId = parentCommentId;
       _replyToUserName = targetUserName;
+      _replyToUserId = targetUserId;
     });
     
     _commentFocusNode.requestFocus();
@@ -210,11 +230,11 @@ class _CommentSheetState extends State<CommentSheet> {
               color: Colors.grey[100],
               child: Row(
                 children: [
-                  Text("Membalas ${_replyToUserName}...", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  Text("Membalas ${_replyToUserName}...", style: TextStyle(color: Colors.grey[600], fontSize: context.s(14))),
                   const Spacer(),
                   InkWell(
                     onTap: _cancelReplyMode,
-                    child: const Icon(Icons.close, size: 16, color: Colors.grey),
+                    child: Icon(Icons.close, size: context.s(16), color: Colors.grey),
                   )
                 ],
               ),

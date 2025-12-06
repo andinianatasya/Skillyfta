@@ -17,7 +17,8 @@ class FeedCard extends StatelessWidget {
     if (diff.inMinutes < 1) return 'Baru saja';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m';
     if (diff.inHours < 24) return '${diff.inHours}j';
-    return '${diff.inDays}h';
+    if (diff.inDays < 7) return '${diff.inDays}h';
+    return '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}';
   }
 
   Color _getBadgeColor(String? category) {
@@ -36,7 +37,6 @@ class FeedCard extends StatelessWidget {
     return 'assets/images/$cat.png';
   }
 
-  // Hapus postingan
   // Hapus postingan beserta isinya (Komen, Reply, Like)
   Future<void> _deletePost(BuildContext context, String postId) async {
     final confirm = await showDialog<bool>(
@@ -86,7 +86,7 @@ class FeedCard extends StatelessWidget {
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Postingan bersih terhapus."), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Postingan berhasil dihapus."), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
@@ -152,7 +152,8 @@ class FeedCard extends StatelessWidget {
                       data['userName'] ?? 'User', 
                       style: const TextStyle(
                         fontWeight: FontWeight.bold, 
-                        fontSize: 15
+                        fontSize: 15,
+                        color: Colors.black87
                       )
                     ),
                     const SizedBox(height: 2),

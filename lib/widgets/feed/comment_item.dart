@@ -1,13 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/utils/ui_helper.dart';
 import 'package:skillyfta/widgets/feed/like_reply_button.dart';
 
 class CommentItem extends StatefulWidget {
   final String postId;
   final String commentId;
   final Map<String, dynamic> data;
-  final Function(String commentId, String userName) onReply;
+  final Function(String commentId, String userName, String targetUserId) onReply;
   final Function(String commentId) onDelete;
 
   const CommentItem({
@@ -26,24 +27,30 @@ class CommentItem extends StatefulWidget {
 class _CommentItemState extends State<CommentItem> {
   bool _showReplies = false;
 
+  String _formatTimeAgo(Timestamp? timestamp) {
+    if (timestamp == null) return "Baru saja";
+    
+    final now = DateTime.now();
+    final date = timestamp.toDate();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 1) {
+      return "Baru saja";
+    } else if (diff.inMinutes < 60) {
+      return "${diff.inMinutes}m";
+    } else if (diff.inHours < 24) {
+      return "${diff.inHours}j";
+    } else if (diff.inDays < 7) {
+      return "${diff.inDays}h";
+    } else {
+      return "${date.day}/${date.month}/${date.year}";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
-
-    double screenWidth = MediaQuery.of(context).size.width;
-    
-    double scale = screenWidth / 375.0;
-    
-    scale = scale.clamp(0.85, 1.2);
-
-    double fs(double size) => size * scale;
-    
-    String timeAgo = "Baru saja";
-    if (data['timestamp'] != null) {
-       final diff = DateTime.now().difference((data['timestamp'] as Timestamp).toDate());
-       if (diff.inMinutes >= 1) timeAgo = "${diff.inMinutes}m";
-       if (diff.inHours >= 1) timeAgo = "${diff.inHours}j";
-    }
+    String timeAgo = _formatTimeAgo(data['timestamp'] as Timestamp?);
 
     final currentUser = FirebaseAuth.instance.currentUser;
     final bool isOwner = currentUser != null && currentUser.uid == data['userId'];
@@ -59,7 +66,12 @@ class _CommentItemState extends State<CommentItem> {
           CircleAvatar(
             radius: 18,
             backgroundColor: Colors.grey[200],
-            child: Text(data['userInitial'] ?? 'U', style: const TextStyle(fontSize: 14, color: Colors.black87)),
+            child: Text(
+              data['userInitial'] ?? 'U', 
+              style: const TextStyle(
+                fontSize: 16, color: Color(0xFF667EEA)
+              )
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -74,14 +86,14 @@ class _CommentItemState extends State<CommentItem> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold, 
                           color: Colors.black, 
-                          fontSize: fs(13) 
+                          fontSize: context.s(15) 
                         )
                       ),
                       TextSpan(
                         text: data['content'] ?? '', 
                         style: TextStyle(
                           color: Colors.black87, 
-                          fontSize: fs(13)
+                          fontSize: context.s(15)
                         )
                       ),
                     ],
@@ -89,17 +101,16 @@ class _CommentItemState extends State<CommentItem> {
                 ),
                 const SizedBox(height: 4),
                 
-                // footer (waktu, reply, hapus)
                 Row(
                   children: [
-                    Text(timeAgo, style: TextStyle(fontSize: fs(11), color: Colors.grey)),
+                    Text(timeAgo, style: TextStyle(fontSize: context.s(12), color: Colors.grey)),
                     const SizedBox(width: 16),
                     InkWell(
-                      onTap: () => widget.onReply(widget.commentId, data['userName']),
+                      onTap: () => widget.onReply(widget.commentId, data['userName'], data['userId']),
                       child: Text(
                         "Balas", 
                         style: TextStyle(
-                          fontSize: fs(11), 
+                          fontSize: context.s(12), 
                           fontWeight: FontWeight.bold, 
                           color: Colors.grey
                         )
@@ -112,7 +123,7 @@ class _CommentItemState extends State<CommentItem> {
                         child: Text(
                           "Hapus", 
                           style: TextStyle(
-                            fontSize: fs(11), 
+                            fontSize: context.s(12), 
                             fontWeight: FontWeight.bold, 
                             color: Colors.redAccent
                           )
@@ -124,7 +135,6 @@ class _CommentItemState extends State<CommentItem> {
 
                 const SizedBox(height: 8),
 
-                // TOMBOL SHOW/HIDE REPLIES
                 if (replyCount > 0)
                   InkWell(
                     onTap: () {
@@ -142,7 +152,7 @@ class _CommentItemState extends State<CommentItem> {
                             _showReplies 
                                 ? "Sembunyikan balasan" 
                                 : "Lihat $replyCount balasan lainnya",
-                            style: TextStyle(fontSize: fs(11), color: Colors.grey, fontWeight: FontWeight.w600),
+                            style: TextStyle(fontSize: context.s(12), color: Colors.grey, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -173,7 +183,14 @@ class _CommentItemState extends State<CommentItem> {
                     return Column(
                       children: replies.map((replyDoc) {
                         final replyData = replyDoc.data() as Map<String, dynamic>;
-                        return _buildReplyItem(widget.postId, widget.commentId, replyDoc.id, replyData);
+                        return _buildReplyItem(
+                          widget.postId, 
+                          widget.commentId, 
+                          replyDoc.id, 
+                          replyData,
+                          context.s,
+                          _formatTimeAgo
+                        );
                       }).toList(),
                     );
                   },
@@ -182,21 +199,23 @@ class _CommentItemState extends State<CommentItem> {
             ),
           ),
           // Like Button
-          CommentLikeButton(postId: widget.postId, commentId: widget.commentId, initialLikes: data['likes'] ?? 0),
+          CommentLikeButton(
+            postId: widget.postId,
+            commentId: widget.commentId,
+            initialLikes: data['likes'] ?? 0
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildReplyItem(String postId, String commentId, String replyId, Map<String, dynamic> data) {
-
-    double screenWidth = MediaQuery.of(context).size.width;
-    double scale = (screenWidth / 375.0).clamp(0.85, 1.2);
-    double fs(double size) => size * scale;
+  Widget _buildReplyItem(String postId, String commentId, String replyId, Map<String, dynamic> data, double Function(double) fs, String Function(Timestamp?) formatTime) {
 
     final currentUser = FirebaseAuth.instance.currentUser;
     final bool isOwner = currentUser != null && currentUser.uid == data['userId'];
     
+    String timeAgo = formatTime(data['timestamp'] as Timestamp?);
+
     Future<void> deleteThisReply() async {
        final confirm = await showDialog<bool>(
         context: context,
@@ -240,7 +259,7 @@ class _CommentItemState extends State<CommentItem> {
             child: Text(
               data['userInitial'] ?? 'U', 
               style: const TextStyle(
-                fontSize: 10, color: Colors.black87
+                fontSize: 14, color: Color(0xFF667EEA)
               )
             )
           ),
@@ -254,13 +273,13 @@ class _CommentItemState extends State<CommentItem> {
                       TextSpan(
                         text: "${data['userName'] ?? 'User'} ", 
                         style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.black, fontSize: fs(12)
+                          fontWeight: FontWeight.bold, color: Colors.black, fontSize: context.s(14)
                         )
                       ), 
                       TextSpan(
                         text: data['content'] ?? '', 
                         style: TextStyle(
-                          color: Colors.black87, fontSize: fs(12)
+                          color: Colors.black87, fontSize: context.s(14)
                         )
                       )
                     ],
@@ -269,17 +288,17 @@ class _CommentItemState extends State<CommentItem> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Text("Baru saja", style: TextStyle(fontSize: fs(10), color: Colors.grey)),
+                    Text(timeAgo, style: TextStyle(fontSize: context.s(11), color: Colors.grey)),
                     const SizedBox(width: 12),
                     InkWell(
-                      onTap: () => widget.onReply(commentId, data['userName']), 
-                      child: Text("Balas", style: TextStyle(fontSize: fs(10), fontWeight: FontWeight.bold, color: Colors.grey))
+                      onTap: () => widget.onReply(commentId, data['userName'], data['userId']), 
+                      child: Text("Balas", style: TextStyle(fontSize: context.s(11), fontWeight: FontWeight.bold, color: Colors.grey))
                     ),
                     if (isOwner) ...[
                       const SizedBox(width: 12), 
                       InkWell(
                         onTap: deleteThisReply, 
-                        child: Text("Hapus", style: TextStyle(fontSize: fs(10), fontWeight: FontWeight.bold, color: Colors.redAccent))
+                        child: Text("Hapus", style: TextStyle(fontSize: context.s(11), fontWeight: FontWeight.bold, color: Colors.redAccent))
                       )
                     ]
                   ]
