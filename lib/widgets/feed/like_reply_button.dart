@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:skillyfta/utils/ui_helper.dart';
 
 class CommentLikeButton extends StatelessWidget {
   final String postId;
@@ -122,12 +123,12 @@ class ReplyLikeButton extends StatelessWidget {
             children: [
               Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
-                size: 12,
+                size: context.s(14),
                 color: isLiked ? Colors.red : Colors.grey,
               ),
               if (initialLikes > 0) ...[
                 const SizedBox(width: 4),
-                Text('$initialLikes', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                Text('$initialLikes', style: const TextStyle(fontSize: 13, color: Colors.grey)),
               ],
             ],
           ),
