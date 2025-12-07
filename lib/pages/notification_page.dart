@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
-import 'package:skillyfta/widgets/feed/comment_sheet.dart'; // Import untuk buka komentar
+import 'package:skillyfta/widgets/feed/comment_sheet.dart';
 
 class NotificationPage extends StatelessWidget {
   const NotificationPage({super.key});
@@ -16,13 +16,38 @@ class NotificationPage extends StatelessWidget {
     return '${diff.inDays}h';
   }
 
-  void _openPost(BuildContext context, String postId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CommentSheet(postId: postId),
-    );
+  Future<void> _deleteNotification(String notificationId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('notifications')
+        .doc(notificationId)
+        .delete();
+  }
+
+  void _openPost(BuildContext context, String postId) async {
+    final postDoc = await FirebaseFirestore.instance.collection('posts').doc(postId).get();
+    
+    if (!postDoc.exists) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Postingan ini telah dihapus oleh penggunanya.')),
+        );
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => CommentSheet(postId: postId),
+      );
+    }
   }
 
   @override
@@ -90,37 +115,77 @@ class NotificationPage extends StatelessWidget {
                       separatorBuilder: (context, index) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final data = notifs[index].data() as Map<String, dynamic>;
+                        final String notificationId = notifs[index].id;
                         final String postId = data['postId'] ?? '';
+                        final String fromUserId = data['fromUserId'] ?? '';
                         
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          onTap: () => _openPost(context, postId),
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF667EEA).withOpacity(0.1),
-                            child: Text(data['fromUserInitial'] ?? 'U', style: const TextStyle(color: Color(0xFF667EEA), fontWeight: FontWeight.bold)),
-                          ),
-                          title: RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: "${data['fromUserName']} ",
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
+                        return StreamBuilder(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(fromUserId)
+                              .snapshots(),
+                          builder: (context, userSnapshot) {
+                            
+                            String displayName = data['fromUserName'] ?? 'User';
+                            String displayInitial = 'U';
+                            if (displayName.isNotEmpty) {
+                              displayInitial = displayName[0].toUpperCase();
+                            }
+
+                            if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                              final userData = userSnapshot.data!.data();
+                              if (userData != null) {
+                                String newName = userData['fullName'] ?? displayName;
+                                
+                                if (newName.isNotEmpty) {
+                                  displayName = newName;
+                                  displayInitial = newName[0].toUpperCase();
+                                }
+                              }
+                            }
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              onTap: () => _openPost(context, postId),
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFF667EEA).withOpacity(0.1),
+                                child: Text(displayInitial, style: const TextStyle(color: Color(0xFF667EEA), fontWeight: FontWeight.bold)),
+                              ),
+                              title: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: "$displayName",
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
+                                    ),
+                                    const TextSpan(
+                                      text: " membalas komentar Anda: ",
+                                      style: TextStyle(color: Colors.black87, fontSize: 14),
+                                    ),
+                                    TextSpan(
+                                      text: "\"${data['content']}\"",
+                                      style: const TextStyle(color: Colors.grey, fontSize: 13, fontStyle: FontStyle.italic),
+                                    ),
+                                  ],
                                 ),
-                                const TextSpan(
-                                  text: "membalas komentar Anda: ",
-                                  style: TextStyle(color: Colors.black87, fontSize: 14),
-                                ),
-                                TextSpan(
-                                  text: "\"${data['content']}\"",
-                                  style: const TextStyle(color: Colors.grey, fontSize: 13, fontStyle: FontStyle.italic),
-                                ),
-                              ],
-                            ),
+                              ),
+                              trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _formatTime(data['timestamp']),
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                                icon: Icon(Icons.close, size: 20, color: Colors.grey[400]),
+                                onPressed: () => _deleteNotification(notificationId),
+                                tooltip: "Hapus notifikasi",
+                              ),
+                            ],
                           ),
-                          trailing: Text(
-                            _formatTime(data['timestamp']),
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
+                            );
+                          }
                         );
                       },
                     );

@@ -37,7 +37,6 @@ class FeedCard extends StatelessWidget {
     return 'assets/images/$cat.png';
   }
 
-  // Hapus postingan beserta isinya (Komen, Reply, Like)
   Future<void> _deletePost(BuildContext context, String postId) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -129,59 +128,83 @@ class FeedCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: badgeColor,
-                child: Text(
-                  data['userInitial'] ?? 'U', 
-                  style: const TextStyle(
-                    color: Colors.white, 
-                    fontWeight: FontWeight.bold
-                  )
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data['userName'] ?? 'User', 
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(data['userId'])
+                .snapshots(),
+            builder: (context, snapshot) {
+              
+              String displayName = data['userName'] ?? 'User';
+              String displayInitial = 'U';
+
+              if (snapshot.hasData && snapshot.data!.exists) {
+                final userData = snapshot.data!.data() as Map<String, dynamic>?;
+                if (userData != null) {
+                  String newName = userData['fullName'] ?? displayName;
+                  
+                  if (newName.isNotEmpty) {
+                    displayName = newName;
+                    displayInitial = newName[0].toUpperCase();
+                  }
+                }
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: badgeColor,
+                    child: Text(
+                      displayInitial,
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold, 
-                        fontSize: 15,
-                        color: Colors.black87
+                        color: Colors.white, 
+                        fontWeight: FontWeight.bold
                       )
                     ),
-                    const SizedBox(height: 2),
-                    Row(
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _formatTimestamp(data['timestamp'] as Timestamp?), 
-                          style: TextStyle(fontSize: 11, color: Colors.grey[600])
+                          displayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold, 
+                            fontSize: 15,
+                            color: Colors.black87
+                          )
                         ),
-                        const SizedBox(width: 8),
-                        Image.asset(_getBadgeIcon(category), height: 14, width: 14, errorBuilder: (_,__,___) => const SizedBox()),
-                        const SizedBox(width: 4),
-                        Text(category, style: TextStyle(fontSize: 11, color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Text(
+                              _formatTimestamp(data['timestamp'] as Timestamp?), 
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600])
+                            ),
+                            const SizedBox(width: 8),
+                            Image.asset(_getBadgeIcon(category), height: 14, width: 14, errorBuilder: (_,__,___) => const SizedBox()),
+                            const SizedBox(width: 4),
+                            Text(category, style: TextStyle(fontSize: 11, color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              if (isOwner)
-                InkWell(
-                  onTap: () => _deletePost(context, postId),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: Icon(Icons.delete_outline, size: 20, color: Colors.grey[400]),
                   ),
-                ),
-            ],
+                  if (isOwner)
+                    InkWell(
+                      onTap: () => _deletePost(context, postId),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Icon(Icons.delete_outline, size: 20, color: Colors.grey[400]),
+                      ),
+                    ),
+                ],
+              );
+            }
           ),
           const SizedBox(height: 12),
           Text(data['content'] ?? '', style: const TextStyle(fontSize: 14, height: 1.4, color: Colors.black87)),

@@ -21,7 +21,6 @@ class _CommentSheetState extends State<CommentSheet> {
   bool _isSending = false;
   String? _replyToUserId;
 
-  // Fungsi Kirim Komentar
   Future<void> _sendComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
@@ -34,18 +33,38 @@ class _CommentSheetState extends State<CommentSheet> {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final userData = userDoc.data();
       final userName = userData?['fullName'] ?? 'User';
-      final userInitial = userData?['fullName'] != null ? userData!['fullName'][0].toUpperCase() : 'U';
+      final userInitial = userData?['fullName'] != null && (userData!['fullName'] as String).isNotEmpty 
+          ? userData['fullName'][0].toUpperCase() 
+          : 'U';
 
       final postRef = FirebaseFirestore.instance.collection('posts').doc(widget.postId);
 
+      String contentToSend = text;
+      String? targetUserId; 
+
       if (_isReplying && _replyToCommentId != null) {
+        
+        targetUserId = _replyToUserId;
+
+        if (_replyToUserName != null) {
+           final prefix = "@$_replyToUserName";
+           if (contentToSend.startsWith(prefix)) {
+             contentToSend = contentToSend.substring(prefix.length).trim();
+             
+             if (contentToSend.startsWith(',') || contentToSend.startsWith(' ')) {
+                contentToSend = contentToSend.substring(1).trim();
+             }
+           }
+        }
+        
+        if (contentToSend.isEmpty) contentToSend = text;
+
         final commentRef = postRef.collection('comments').doc(_replyToCommentId);
         
         await commentRef.collection('replies').add({
-          'content': text,
-          'userId': user.uid,
-          'userName': userName,
-          'userInitial': userInitial,
+          'content': contentToSend, 
+          'userId': user.uid,       
+          'targetUserId': targetUserId,
           'timestamp': FieldValue.serverTimestamp(),
           'likes': 0,
         });
@@ -63,7 +82,7 @@ class _CommentSheetState extends State<CommentSheet> {
                  'fromUserName': userName,
                  'fromUserInitial': userInitial,
                  'postId': widget.postId,
-                 'content': text,
+                 'content': contentToSend,
                  'timestamp': FieldValue.serverTimestamp(),
                  'isRead': false,
                });
@@ -73,8 +92,6 @@ class _CommentSheetState extends State<CommentSheet> {
         await postRef.collection('comments').add({
           'content': text,
           'userId': user.uid,
-          'userName': userName,
-          'userInitial': userInitial,
           'timestamp': FieldValue.serverTimestamp(),
           'likes': 0,
         });

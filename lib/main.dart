@@ -4,11 +4,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:skillyfta/pages/beranda_page.dart';
 import 'firebase_options.dart';
 import 'screens/screen_one.dart';
+import 'package:skillyfta/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.scheduleDailyNotifications();
 
   runApp(const MyApp());
 }
@@ -36,7 +41,6 @@ class MyApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         
         builder: (context, snapshot) {
-          // KONDISI LOADING: cek token di HP
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(
@@ -45,12 +49,10 @@ class MyApp extends StatelessWidget {
             );
           }
 
-          // UDH LOGIN: Ada data user -> Langsung ke Beranda
           if (snapshot.hasData) {
             return const BerandaPage(); 
           }
 
-          // BELUM LOGIN / LOGOUT: -> Ke Halaman awal
           return const ScreenOne(); 
         },
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -43,39 +44,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return _nameController.text[0].toUpperCase();
     }
     return 'U';
-  }
-
-  void _handleCameraTap() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Ganti Foto Profil',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          content: const Text(
-            'Fitur upload foto akan segera tersedia',
-            style: TextStyle(fontSize: 14),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'OK',
-                style: TextStyle(
-                  color: Color(0xFF667EEA),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<String?> _showReauthDialog() async {
@@ -139,7 +107,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           try {
             await user.verifyBeforeUpdateEmail(_emailController.text);
           } on FirebaseAuthException catch (e) {
-            // Jika error karena butuh login ulang
             if (e.code == 'requires-recent-login') {
               Navigator.pop(context);
 
@@ -178,7 +145,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           );
         }
 
-        //Update Firestore
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -321,39 +287,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                 ),
                               ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: _handleCameraTap,
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4CAF50),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 18,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
 
@@ -363,7 +296,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Nama Lengkap',
+                                'Nama Pengguna',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -379,8 +312,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500,
                                 ),
+                                inputFormatters: [
+                                  LengthLimitingTextInputFormatter(7),
+                                ],
                                 decoration: InputDecoration(
-                                  hintText: 'Masukkan nama lengkap',
+                                  hintText: 'Masukkan nama Pengguna',
+                                  helperText: 'Maksimal 7 karakter',
                                   suffixIcon: Icon(
                                     Icons.edit,
                                     color: Colors.grey[400],

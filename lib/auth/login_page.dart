@@ -58,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const BerandaPage()),
-          (route) => false, // Ini menghapus semua halaman sebelumnya dari memori
+          (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -157,7 +157,7 @@ class _LoginPageState extends State<LoginPage> {
                       color: const Color(0xFF4A3F8E).withOpacity(0.5),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    // DITAMBAHKAN: Widget Form untuk validasi
+                    
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -187,10 +187,10 @@ class _LoginPageState extends State<LoginPage> {
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 16,
                                 horizontal: 16,
-                              ), // DIUBAH
+                              ),
                             ),
                             keyboardType: TextInputType.emailAddress,
-                            // DITAMBAHKAN: Aturan validasi
+                            
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Email tidak boleh kosong';
@@ -225,7 +225,7 @@ class _LoginPageState extends State<LoginPage> {
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 16,
                                 horizontal: 16,
-                              ), // DIUBAH
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _isPasswordVisible
@@ -240,7 +240,7 @@ class _LoginPageState extends State<LoginPage> {
                                 },
                               ),
                             ),
-                            // DITAMBAHKAN: Aturan validasi
+                            
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Password tidak boleh kosong';
@@ -303,7 +303,7 @@ class _LoginPageState extends State<LoginPage> {
                         TextSpan(
                           text: 'Daftar di sini',
                           style: const TextStyle(
-                            color: Color(0xFFC3A5F8),
+                            color: Color(0xFF3A2D7D),
                             fontWeight: FontWeight.bold,
                           ),
                           recognizer: TapGestureRecognizer()

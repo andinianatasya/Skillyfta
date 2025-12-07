@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
 import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -54,10 +55,12 @@ class _RegisterPageState extends State<RegisterPage> {
             context: context,
             barrierDismissible: false,
             builder: (context) => AlertDialog(
-              title: const Text("Verifikasi Email Anda"),
+              backgroundColor: Colors.white,
+              title: const Text("Verifikasi Email Anda", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
               content: const Text(
                 "Pendaftaran berhasil! Kami telah mengirimkan link verifikasi ke email Anda. "
                 "Silakan cek inbox atau folder spam untuk melanjutkan.",
+                style: TextStyle(color: Colors.black87),
               ),
               actions: [
                 TextButton(
@@ -160,7 +163,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Nama Lengkap',
+                            'Nama Pengguna',
                             style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -168,7 +171,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             controller: _nameController,
                             style: const TextStyle(color: Colors.black87),
                             decoration: InputDecoration(
-                              hintText: 'Masukkan nama lengkap',
+                              hintText: 'Masukkan nama pengguna',
+                              helperText: 'Maksimal 7 karakter',
                               prefixIcon: Icon(Icons.person_outlined),
                               hintStyle: const TextStyle(
                                 fontSize: 16,
@@ -185,9 +189,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                 horizontal: 16,
                               ),
                             ),
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(7),
+                            ],
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Nama lengkap tidak boleh kosong.';
+                                return 'Nama pengguna tidak boleh kosong.';
                               }
                               return null;
                             },

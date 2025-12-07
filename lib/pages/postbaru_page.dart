@@ -77,16 +77,10 @@ class _BuatPostScreenState extends State<BuatPostScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final userName = userDoc.data()?['fullName'] ?? 'User';
-      final userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
-
       await FirebaseFirestore.instance.collection('posts').add({
         'content': _contentController.text.trim(),
         'category': _selectedKategori,
         'userId': user.uid,
-        'userName': userName,
-        'userInitial': userInitial,
         'timestamp': FieldValue.serverTimestamp(),
         'likes': 0,
         'comments': 0,
