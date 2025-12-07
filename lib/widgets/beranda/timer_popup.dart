@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skillyfta/services/streak_service.dart';
+import 'package:skillyfta/utils/ui_helper.dart';
 
 class TimerPopup extends StatefulWidget {
   final String skillId;
@@ -87,7 +88,7 @@ class _TimerPopupState extends State<TimerPopup> {
          _pauseTimer(); 
          _showTargetReachedSnack();
          setState(() {
-           _duration = Duration(seconds: _targetTotalDetik); // Cap di target
+           _duration = Duration(seconds: _targetTotalDetik);
          });
       } else {
         setState(() {
@@ -128,7 +129,7 @@ class _TimerPopupState extends State<TimerPopup> {
         if (_isManualInput) {
           _updateManualFieldsFromDuration(_duration);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _minuteFocus.requestFocus(); // Fokus ke Menit
+            _minuteFocus.requestFocus();
             _minuteController.selectAll();
           });
         }
@@ -284,6 +285,8 @@ class _TimerPopupState extends State<TimerPopup> {
     String targetDisplay = "${widget.targetWaktu} ${widget.targetUnit}";
     bool targetMet = _duration.inSeconds >= _targetTotalDetik;
 
+    bool canReset = _duration.inSeconds != widget.progressAwal;
+
     const manualInputStyle = TextStyle(
       fontSize: 28,
       fontWeight: FontWeight.w500,
@@ -299,13 +302,14 @@ class _TimerPopupState extends State<TimerPopup> {
       titlePadding: const EdgeInsets.only(top: 20, left: 20, right: 10),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       actionsPadding: const EdgeInsets.only(bottom: 15, right: 15, left: 15),
+      backgroundColor: Colors.white,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Text(
               'Timer ${widget.skillNama}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -325,15 +329,18 @@ class _TimerPopupState extends State<TimerPopup> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text(
-                  _formatDuration(_duration),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    letterSpacing: 2,
-                    color: targetMet ? Colors.green : Colors.black87,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _formatDuration(_duration),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      letterSpacing: 2,
+                      color: targetMet ? Colors.green : Colors.black87,
+                    ),
                   ),
                 ),
               ),
@@ -343,7 +350,7 @@ class _TimerPopupState extends State<TimerPopup> {
                   color: _isManualInput
                       ? Theme.of(context).primaryColor
                       : Colors.grey[400],
-                  size: 20,
+                  size: context.s(28),
                 ),
                 onPressed: targetMet ? null :  _toggleManualInput,
                 tooltip: targetMet
@@ -434,7 +441,7 @@ class _TimerPopupState extends State<TimerPopup> {
       actions: [
         _buildControlButton(
           icon: Icons.refresh,
-          onPressed: _resetTimer,
+          onPressed: canReset ? _resetTimer : null,
           tooltip: "Reset ke Progress Awal Hari Ini",
         ),
         _buildControlButton(

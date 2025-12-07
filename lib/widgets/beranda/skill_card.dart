@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillyfta/widgets/beranda/edit_skill_dialog.dart';
 import 'package:skillyfta/widgets/beranda/timer_popup.dart';
 
 class SkillCard extends StatelessWidget {
@@ -128,7 +129,25 @@ class SkillCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.edit, size: 13, color: Colors.grey[400]),
+                        InkWell(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => EditSkillDialog(
+                                skillId: skillId,
+                                skillNama: title,
+                                currentTarget: targetWaktu,
+                                currentUnit: targetUnit,
+                                currentProgress: progressAwal,
+                              ),
+                            );
+                          },
+                          child: Padding( // Padding agar area sentuh lebih besar
+                            padding: const EdgeInsets.all(4.0),
+                            child: Icon(Icons.edit, size: 14, color: Colors.grey[400]), // Ukuran icon sedikit dibesarkan agar enak dilihat
+                          ),
+                        ),
                       ],
                     ),
                   ],
