@@ -320,7 +320,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   helperText: 'Maksimal 7 karakter',
                                   suffixIcon: Icon(
                                     Icons.edit,
-                                    color: Colors.grey[400],
+                                    color: const Color(0xFFBDBDBD),
                                     size: 20,
                                   ),
                                   filled: true,

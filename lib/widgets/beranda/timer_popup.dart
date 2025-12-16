@@ -30,6 +30,7 @@ class _TimerPopupState extends State<TimerPopup> {
   Timer? _timer;
   Duration _duration = Duration.zero;
   bool _isRunning = false;
+  final String _digitalFontFamily = 'DigitalNumbers';
 
   final TextEditingController _hourController = TextEditingController(
     text: '00',
@@ -335,6 +336,7 @@ class _TimerPopupState extends State<TimerPopup> {
                     _formatDuration(_duration),
                     textAlign: TextAlign.center,
                     style: TextStyle(
+                      fontFamily: _digitalFontFamily,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
                       fontFeatures: const [FontFeature.tabularFigures()],
@@ -349,8 +351,8 @@ class _TimerPopupState extends State<TimerPopup> {
                   Icons.edit,
                   color: _isManualInput
                       ? Theme.of(context).primaryColor
-                      : Colors.grey[400],
-                  size: context.s(28),
+                      : Colors.grey[500],
+                  size: context.s(24),
                 ),
                 onPressed: targetMet ? null :  _toggleManualInput,
                 tooltip: targetMet
@@ -486,6 +488,7 @@ class _TimerPopupState extends State<TimerPopup> {
         keyboardType: TextInputType.number,
         inputFormatters: formatters,
         style: TextStyle(
+          fontFamily: _digitalFontFamily,
           fontSize: 28,
           fontWeight: FontWeight.w500,
           color: readOnly ? Colors.grey[400] : Colors.black54,
