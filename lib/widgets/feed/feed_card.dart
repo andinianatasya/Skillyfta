@@ -220,7 +220,7 @@ class FeedCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   child: Row(
                     children: [
-                      Icon(Icons.chat_bubble_outline, size: 20, color: Colors.grey[600]),
+                      Icon(Icons.chat_bubble_outline, size: 20, color: const Color(0xFF757575)),
                       const SizedBox(width: 6),
                       Text('${data['comments'] ?? 0}', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
                     ],

@@ -199,7 +199,7 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            child: const Text('Batal', style: TextStyle(color: Color(0xFF9E9E9E), fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
             onPressed: () {

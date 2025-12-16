@@ -240,7 +240,11 @@ class _StatistikPageState extends State<StatistikPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.emoji_events, color: Colors.amber, size: 36),
+                Image.asset(
+                  'assets/images/piala.png',
+                  width: 36,
+                  height: 36,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   "Streak $_streak Hari",
@@ -289,7 +293,7 @@ class _StatistikPageState extends State<StatistikPage> {
                       ? [const Color(0xFF667EEA), const Color(0xFF764BA2)]
                       : [Colors.cyanAccent.shade200, Colors.blueAccent.shade100],
                 ),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(2),
                 boxShadow: value >= 100 ? [
                   BoxShadow(color: (isToday ? const Color(0xFF667EEA) : Colors.cyanAccent).withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))
                 ] : null,

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:skillyfta/utils/ui_helper.dart';
 import 'package:skillyfta/widgets/gradient_background.dart';
 
 class TambahSkillScreen extends StatefulWidget {
@@ -554,142 +555,133 @@ class _TambahSkillScreenState extends State<TambahSkillScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isKategoriDropdownFocused = true;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _isKategoriDropdownFocused
-                                  ? const Color(0xFF764BA2)
-                                  : Colors.grey[300]!,
-                              width: _isKategoriDropdownFocused ? 2 : 1.5,
-                            ),
-                            boxShadow: _isKategoriDropdownFocused
-                                ? [
-                                    BoxShadow(
-                                      color: const Color(0xFF764BA2)
-                                          .withOpacity(0.3),
-                                      spreadRadius: 0,
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 0),
-                                    ),
-                                  ]
-                                : [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.1),
-                                      spreadRadius: 0,
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isKategoriDropdownFocused
+                                ? const Color(0xFF764BA2)
+                                : Colors.grey[300]!,
+                            width: _isKategoriDropdownFocused ? 2 : 1.5,
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedKategori,
-                              hint: Center(
-                                child: Text(
-                                  'Pilih Kategori Skill',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
+                          boxShadow: _isKategoriDropdownFocused
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(0xFF764BA2)
+                                        .withOpacity(0.3),
+                                    spreadRadius: 0,
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 0),
                                   ),
+                                ]
+                              : [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.1),
+                                    spreadRadius: 0,
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedKategori,
+                            hint: Center(
+                              child: Text(
+                                'Pilih Kategori Skill',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              isExpanded: true,
-                              dropdownColor: Colors.white,
-                              icon: Icon(
-                                Icons.keyboard_arrow_down,
-                                color: _isKategoriDropdownFocused
-                                    ? const Color(0xFF764BA2)
-                                    : Colors.grey[600],
-                                size: 24,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              elevation: 8,
-                              menuMaxHeight: 400,
-                              itemHeight: 68,
-                              alignment: AlignmentDirectional.bottomStart,
-                              items: _kategoriList.map((kategori) {
-                                return DropdownMenuItem<String>(
-                                  value: kategori['nama'],
-                                  child: MouseRegion(
-                                    cursor: SystemMouseCursors.click,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10, horizontal: 8),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 44,
-                                            height: 44,
-                                            decoration: BoxDecoration(
-                                              color: kategori['color']
-                                                  .withOpacity(0.15),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: Center(
-                                              child: Image.asset(
-                                                kategori['icon'],
-                                                width: 24,
-                                                height: 24,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  return Icon(
-                                                    Icons.category,
-                                                    size: 24,
-                                                    color: kategori['color'],
-                                                  );
-                                                },
-                                              ),
+                            ),
+                            isExpanded: true,
+                            dropdownColor: Colors.white,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: _isKategoriDropdownFocused
+                                  ? const Color(0xFF764BA2)
+                                  : Colors.grey[600],
+                              size: 24,
+                            ),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            elevation: 8,
+                            menuMaxHeight: context.s(280),
+                            items: _kategoriList.map((kategori) {
+                              return DropdownMenuItem<String>(
+                                value: kategori['nama'],
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 8),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: kategori['color']
+                                                .withOpacity(0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: Center(
+                                            child: Image.asset(
+                                              kategori['icon'],
+                                              width: 24,
+                                              height: 24,
+                                              errorBuilder: (context, error,
+                                                  stackTrace) {
+                                                return Icon(
+                                                  Icons.category,
+                                                  size: 24,
+                                                  color: kategori['color'],
+                                                );
+                                              },
                                             ),
                                           ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Text(
-                                              kategori['nama'],
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.black87,
-                                              ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Text(
+                                            kategori['nama'],
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black87,
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedKategori = newValue;
-                                  _isKategoriDropdownFocused = false;
-                                });
-                              },
-                              onTap: () {
-                                setState(() {
-                                  _isKategoriDropdownFocused = true;
-                                });
-                              },
-                            ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedKategori = newValue;
+                                _isKategoriDropdownFocused = false;
+                              });
+                            },
+                            onTap: () {
+                              setState(() {
+                                _isKategoriDropdownFocused = true;
+                              });
+                            },
                           ),
                         ),
                       ),
