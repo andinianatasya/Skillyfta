@@ -42,9 +42,11 @@ class StreakService {
           'totalMinutes': FieldValue.increment(minutesToAdd),
           'lastSkillResetDate': Timestamp.fromDate(today)
         });
-        print("Menyimpan $minutesToAdd menit ke Total Lifetime & Reset Harian.");
+        print(
+            "Menyimpan $minutesToAdd menit ke Total Lifetime & Reset Harian.");
       } else {
-        batch.update(userRef, {'lastSkillResetDate': Timestamp.fromDate(today)});
+        batch.update(
+            userRef, {'lastSkillResetDate': Timestamp.fromDate(today)});
       }
 
       await batch.commit();
@@ -54,16 +56,22 @@ class StreakService {
     await _calculateStreak(userRef, data, today);
   }
 
-  Future<void> _calculateStreak(DocumentReference userRef, Map<String, dynamic> data, DateTime today) async {
+  Future<void> _calculateStreak(DocumentReference userRef,
+      Map<String, dynamic> data, DateTime today) async {
     int streakFreeze = data['streakFreezeCount'] ?? 1;
     Timestamp? lastStreakTs = data['lastStreakDate'];
 
     Timestamp? lastFreezeResetTs = data['lastFreezeResetDate'];
     if (lastFreezeResetTs != null) {
-      final diffFreeze = today.difference(lastFreezeResetTs.toDate()).inDays;
+      final diffFreeze = today
+          .difference(lastFreezeResetTs.toDate())
+          .inDays;
       if (diffFreeze >= 7 && streakFreeze < 1) {
         streakFreeze = 1;
-        await userRef.update({'streakFreezeCount': 1, 'lastFreezeResetDate': Timestamp.fromDate(today)});
+        await userRef.update({
+          'streakFreezeCount': 1,
+          'lastFreezeResetDate': Timestamp.fromDate(today)
+        });
       }
     } else {
       await userRef.update({'lastFreezeResetDate': Timestamp.fromDate(today)});
@@ -72,9 +80,12 @@ class StreakService {
     if (lastStreakTs == null) return;
 
     DateTime lastDate = lastStreakTs.toDate();
-    DateTime lastDateMidnight = DateTime(lastDate.year, lastDate.month, lastDate.day);
+    DateTime lastDateMidnight = DateTime(
+        lastDate.year, lastDate.month, lastDate.day);
 
-    final difference = today.difference(lastDateMidnight).inDays;
+    final difference = today
+        .difference(lastDateMidnight)
+        .inDays;
 
     if (difference == 0 || difference == 1) {
       return;
@@ -83,7 +94,7 @@ class StreakService {
 
       if (daysMissed <= streakFreeze) {
         int newFreeze = streakFreeze - daysMissed;
-        if(newFreeze < 0) newFreeze = 0;
+        if (newFreeze < 0) newFreeze = 0;
 
         await userRef.update({
           'streakFreezeCount': newFreeze,
@@ -113,7 +124,8 @@ class StreakService {
     bool alreadyIncrementedToday = false;
     if (lastStreakTs != null) {
       DateTime lastDate = lastStreakTs.toDate();
-      DateTime lastDateMidnight = DateTime(lastDate.year, lastDate.month, lastDate.day);
+      DateTime lastDateMidnight = DateTime(
+          lastDate.year, lastDate.month, lastDate.day);
       if (lastDateMidnight.isAtSameMomentAs(today)) {
         alreadyIncrementedToday = true;
       }
@@ -130,6 +142,7 @@ class StreakService {
     await updateDailyGraph(user.uid);
   }
 
+
   Future<void> updateDailyGraph(String uid) async {
     try {
       String todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -140,32 +153,38 @@ class StreakService {
           .collection('skills')
           .get();
 
-      bool isAnyTargetReached = false;
+      int totalSecondsToday = 0;
+      int totalTargetSeconds = 0;
 
       for (var doc in skillsSnapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
         int progress = (data['progressHariIni'] ?? 0).toInt();
+        totalSecondsToday += progress;
+
         int targetWaktu = (data['targetWaktu'] ?? 0).toInt();
         String unit = data['targetUnit'] ?? 'Menit';
 
-        int targetDetik = (unit == 'Jam') ? targetWaktu * 3600 : targetWaktu * 60;
-
-        if (progress >= targetDetik && targetDetik > 0) {
-          isAnyTargetReached = true;
-          break;
+        if (unit == 'Jam') {
+          totalTargetSeconds += (targetWaktu * 3600);
+        } else {
+          totalTargetSeconds += (targetWaktu * 60);
         }
       }
 
-      if (isAnyTargetReached) {
-        await _firestore.collection('users').doc(uid).set({
-          'dailyHistory': {
-            todayKey: 100
-          }
-        }, SetOptions(merge: true));
+      if (totalTargetSeconds == 0) totalTargetSeconds = 1;
 
-        print("Grafik diperbarui: $todayKey = 100");
-      }
+      double percentage = (totalSecondsToday / totalTargetSeconds) * 100;
+
+      if (percentage > 100) percentage = 100;
+
+      await _firestore.collection('users').doc(uid).set({
+        'dailyHistory': {
+          todayKey: percentage.toInt()
+        }
+      }, SetOptions(merge: true));
+
+      print("Grafik diperbarui: $todayKey = ${percentage.toInt()}%");
     } catch (e) {
       print("Error update daily graph: $e");
     }

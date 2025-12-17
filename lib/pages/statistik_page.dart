@@ -18,6 +18,9 @@ class _StatistikPageState extends State<StatistikPage> {
 
   final Color _textDark = const Color(0xFF333333);
   final Color _textFaded = const Color(0x99333333);
+  final Color _borderColor = const Color(0xFFD9D9D9);
+  final Color _gradientCyan = const Color(0xFF25DBE4);
+  final Color _gradientBlue = const Color(0xFF4FACFE);
   final Color _purpleGradient = const Color(0xFF764BA2);
   final Color _blueGradient = const Color(0xFF667EEA);
 
@@ -28,7 +31,7 @@ class _StatistikPageState extends State<StatistikPage> {
   int _totalMenitLifetime = 0;
   int _streak = 0;
 
-  List<double> _weeklyData = [0, 0, 0, 0, 0, 0, 0];
+  List<double> _historyData = [0, 0, 0, 0, 0, 0, 0];
   final List<String> _daysLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
   @override
@@ -62,7 +65,7 @@ class _StatistikPageState extends State<StatistikPage> {
         int dbStreak = (data['currentStreak'] ?? 0).toInt();
         int dbTotalMinutes = (data['totalMinutes'] ?? 0).toInt();
 
-        List<double> tempWeeklyData = [0, 0, 0, 0, 0, 0, 0];
+        List<double> tempHistoryData = [0, 0, 0, 0, 0, 0, 0];
         Map<String, dynamic> dailyHistory = data['dailyHistory'] ?? {};
 
         DateTime now = DateTime.now();
@@ -73,7 +76,7 @@ class _StatistikPageState extends State<StatistikPage> {
           String dateKey = DateFormat('yyyy-MM-dd').format(checkDate);
 
           if (dailyHistory.containsKey(dateKey)) {
-            tempWeeklyData[i] = (dailyHistory[dateKey] as num).toDouble();
+            tempHistoryData[i] = (dailyHistory[dateKey] as num).toDouble();
           }
         }
 
@@ -81,7 +84,7 @@ class _StatistikPageState extends State<StatistikPage> {
           setState(() {
             _streak = dbStreak;
             _totalMenitLifetime = dbTotalMinutes;
-            _weeklyData = tempWeeklyData;
+            _historyData = tempHistoryData;
           });
         }
       }
@@ -99,28 +102,7 @@ class _StatistikPageState extends State<StatistikPage> {
           child: Column(
             children: [
               _buildHeader(),
-
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _buildTab('Beranda', 0),
-                        _buildTab('Statistik', 1),
-                        _buildTab('Feed', 2),
-                      ],
-                    ),
-                    Container(height: 1, color: Colors.grey[300]),
-                  ],
-                ),
-              ),
-
+              _buildTabBar(),
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -128,16 +110,35 @@ class _StatistikPageState extends State<StatistikPage> {
                   child: StreamBuilder<QuerySnapshot>(
                     stream: _getSkillsStream(),
                     builder: (context, snapshot) {
+                      int totalDetikHariIni = 0;
+                      int grandTotalTargetMenit = 0;
+                      _totalSkills = 0;
+
                       if (snapshot.hasData) {
                         _totalSkills = snapshot.data!.docs.length;
-                        int totalDetikHariIni = 0;
 
                         for (var doc in snapshot.data!.docs) {
                           var data = doc.data() as Map<String, dynamic>;
                           totalDetikHariIni += (data['progressHariIni'] as num? ?? 0).toInt();
+
+                          int targetWaktu = (data['targetWaktu'] as num? ?? 0).toInt();
+                          String targetUnit = data['targetUnit'] ?? 'Menit';
+
+                          if (targetUnit == 'Jam') {
+                            grandTotalTargetMenit += (targetWaktu * 60);
+                          } else {
+                            grandTotalTargetMenit += targetWaktu;
+                          }
                         }
+
                         _menitHariIni = (totalDetikHariIni / 60).floor();
                       }
+
+                      if (grandTotalTargetMenit == 0) grandTotalTargetMenit = 1;
+
+                      List<double> finalWeeklyData = List.from(_historyData);
+                      int todayIndex = DateTime.now().weekday - 1;
+                      finalWeeklyData[todayIndex] = _menitHariIni.toDouble();
 
                       return Stack(
                         children: [
@@ -148,7 +149,7 @@ class _StatistikPageState extends State<StatistikPage> {
                                 _buildDynamicStatGrid(),
                                 const SizedBox(height: 20),
                                 if (_showGraph || _showStreak)
-                                  _buildCombinedChartAndStreakCard(),
+                                  _buildCombinedChartAndStreakCard(finalWeeklyData, grandTotalTargetMenit),
                                 const SizedBox(height: 20),
                               ],
                             ),
@@ -176,15 +177,29 @@ class _StatistikPageState extends State<StatistikPage> {
     );
   }
 
+  Widget _buildTabBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildTab('Beranda', 0),
+              _buildTab('Statistik', 1),
+              _buildTab('Feed', 2),
+            ],
+          ),
+          Container(height: 1, color: _borderColor),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDynamicStatGrid() {
-    double aspectRatio;
-    if (_showGraph || _showStreak) {
-      aspectRatio = 1.4;
-    } else {
-      aspectRatio = 0.8;
-    }
-
+    double aspectRatio = (_showGraph || _showStreak) ? 1.4 : 0.8;
     int displayTotalMinutes = _totalMenitLifetime + _menitHariIni;
 
     return GridView.count(
@@ -203,7 +218,7 @@ class _StatistikPageState extends State<StatistikPage> {
     );
   }
 
-  Widget _buildCombinedChartAndStreakCard() {
+  Widget _buildCombinedChartAndStreakCard(List<double> weeklyData, int grandTotalTarget) {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 320),
@@ -229,10 +244,10 @@ class _StatistikPageState extends State<StatistikPage> {
             Text(
               "Progress Mingguan",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _textDark),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _textDark),
             ),
-            const SizedBox(height: 24),
-            _buildBarChart(),
+            const SizedBox(height: 30),
+            _buildBarChart(weeklyData, grandTotalTarget),
             if (!_showStreak) const SizedBox(height: 40),
           ],
           if (_showGraph && _showStreak) const SizedBox(height: 40),
@@ -257,52 +272,59 @@ class _StatistikPageState extends State<StatistikPage> {
     );
   }
 
-  Widget _buildBarChart() {
-    double maxValue = 100;
+  Widget _buildBarChart(List<double> weeklyData, int grandTotalTarget) {
+    double maxBarHeight = 120.0;
     int todayIndex = DateTime.now().weekday - 1;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(7, (index) {
-        double value = _weeklyData[index];
-        if (value > 100) value = 100;
-        double barHeight = (value / maxValue) * 120;
-        if (barHeight < 10 && value > 0) barHeight = 10;
-        if (value == 0) barHeight = 4;
+
+        double percentage;
         bool isToday = index == todayIndex;
 
+        if (isToday) {
+          double minutesDone = weeklyData[index];
+          percentage = (minutesDone / grandTotalTarget) * 100;
+        } else {
+          percentage = weeklyData[index];
+        }
+
+        if (percentage > 100) percentage = 100;
+
+        double barHeight = (percentage / 100) * maxBarHeight;
+
+        if (barHeight < 10 && percentage > 0) barHeight = 10;
+        if (percentage == 0) barHeight = 6;
+
         return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            if (value > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  "${value.toInt()}",
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isToday ? const Color(0xFF764BA2) : Colors.grey[600]),
-                ),
-              ),
             Container(
-              width: 18,
+              width: 24,
               height: barHeight,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: isToday
-                      ? [const Color(0xFF667EEA), const Color(0xFF764BA2)]
-                      : [Colors.cyanAccent.shade200, Colors.blueAccent.shade100],
+                  colors: [
+                    _gradientCyan,
+                    _gradientBlue,
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: value >= 100 ? [
-                  BoxShadow(color: (isToday ? const Color(0xFF667EEA) : Colors.cyanAccent).withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))
-                ] : null,
+                borderRadius: BorderRadius.circular(6),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+
             Text(
               _daysLabels[index],
-              style: TextStyle(fontSize: 12, color: isToday ? _purpleGradient : Colors.grey[400], fontWeight: isToday ? FontWeight.bold : FontWeight.normal),
+              style: TextStyle(
+                  fontSize: 13,
+                  color: isToday ? _textDark : Colors.grey[400],
+                  fontWeight: isToday ? FontWeight.bold : FontWeight.w500
+              ),
             ),
           ],
         );
@@ -342,7 +364,8 @@ class _StatistikPageState extends State<StatistikPage> {
                     activeColor: _blueGradient,
                     onChanged: (bool value) => setModalState(() => tempShowGraph = value),
                   ),
-                  const Divider(),
+                  // Divider menggunakan warna #D9D9D9
+                  Divider(color: _borderColor),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text("Tampilkan Streak", style: TextStyle(fontWeight: FontWeight.w600, color: _textDark)),

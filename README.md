@@ -1,16 +1,15 @@
-# skillyfta
+SKILLYFTA
 
-A new Flutter project.
+Kelompok Womens
+1. Andini Anatasia (231401002)
+2. Fadiyah Maisyarah (231401101)
+3. Tiara Bella Dwiyanti Sitepu (231401107)
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Skillyfta adalah aplikasi mobile yang dirancang untuk memudahkan pengguna dalam
+mencatat serta memantau progres pengembangan skill baru, seperti belajar gitar, coding,
+melukis, olahraga, maupun bahasa asing. Aplikasi ini dilengkapi dengan fitur-fitur utama
+seperti penambahan skill baru, target latihan, tampilan progres dalam bentuk grafik
+mingguan, sistem streak, pengingat otomatis, serta
+feeds yang memungkinkan pengguna berbagi catatan maupun motivasi kepada pengguna lain. Dengan
+demikian, aplikasi Skillyfta ini diharapkan dapat menjadi media yang efektif untuk membantu proses
+pengembangan diri secara terarah, konsisten, dan berkelanjutan.
