@@ -13,3 +13,6 @@ mingguan, sistem streak, pengingat otomatis, serta
 feeds yang memungkinkan pengguna berbagi catatan maupun motivasi kepada pengguna lain. Dengan
 demikian, aplikasi Skillyfta ini diharapkan dapat menjadi media yang efektif untuk membantu proses
 pengembangan diri secara terarah, konsisten, dan berkelanjutan.
+
+Link SRS
+https://drive.google.com/file/d/11bGce82KMWMLQjHKRmSlmb8htNdqJDbe/view?usp=sharing
